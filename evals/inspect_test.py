@@ -25,6 +25,7 @@ from google import genai
 from google.genai import types
 from PIL import Image, ImageDraw
 from pydantic import BaseModel, Field
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 API_KEY = os.environ.get("GEMINI_API_KEY")          # AI Studio key (no billing needed)
 PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT")    # Vertex AI (needs billing)
@@ -38,7 +39,7 @@ OUT_DIR.mkdir(exist_ok=True)
 # ---------- Structured output schema ----------
 class Defect(BaseModel):
     type: Literal["scratch", "dent", "crack", "rust", "deformation",
-                  "discoloration", "missing_material", "other"]
+                  "discoloration", "missing_material", "wrong_orientation", "other"]
     severity: Literal["minor", "major", "critical"]
     description: str
     box_2d: List[int] = Field(
@@ -58,6 +59,8 @@ Image 2 is the PART UNDER INSPECTION.
 
 Compare Image 2 against Image 1. Report only real physical defects
 (scratches, dents, cracks, rust, deformation, discoloration, missing material).
+Also report wrong_orientation if the part is flipped, upside down, or mounted the
+wrong way compared to the golden sample (check which face/features are visible).
 Ignore differences caused only by lighting, shadows, background, or camera angle.
 
 For each defect, give a tight bounding box on Image 2 as [ymin, xmin, ymax, xmax]
@@ -91,6 +94,8 @@ def to_part(path: Path) -> types.Part:
     return types.Part.from_bytes(data=path.read_bytes(), mime_type=mime)
 
 
+@retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=2, min=4, max=60),
+       reraise=True)  # handles 429 rate limits on new projects
 def inspect(golden: Path, test: Path) -> Inspection:
     resp = client.models.generate_content(
         model=MODEL,
