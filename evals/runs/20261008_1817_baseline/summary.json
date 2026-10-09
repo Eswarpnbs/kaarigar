@@ -1,0 +1,15 @@
+{
+  "run": "20261008_1817_baseline",
+  "model": "gemini-2.5-flash",
+  "pairs": 38,
+  "errors": 0,
+  "detection_accuracy_pct": 78.9,
+  "defect_recall_pct": 87.1,
+  "safe_outcome_pct": 96.8,
+  "false_alarm_pct": 57.1,
+  "loc_hit_pct": 75.0,
+  "avg_defect_coverage": 0.399,
+  "avg_box_precision": 0.127,
+  "whole_part_boxes": 3,
+  "avg_latency_s": 7.887
+}

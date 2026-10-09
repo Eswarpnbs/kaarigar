@@ -1,0 +1,1230 @@
+[
+  {
+    "pair": "metal_nut_bent_0",
+    "truth": true,
+    "truth_type": "bent",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "reject",
+    "confidence": 96,
+    "pred_types": [
+      "deformation"
+    ],
+    "latency_s": 13.34,
+    "loc": {
+      "hit": true,
+      "coverage": 0.9570909090909091,
+      "precision": 0.18359375,
+      "whole_part_box": false
+    },
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "deformation",
+          "severity": "major",
+          "description": "The right-most prong of the part is severely bent inwards and appears to be broken or deformed, showing a jagged edge and altered shape compared to the golden samples. There is also material missing or severely displaced.",
+          "box_2d": [
+            340,
+            680,
+            660,
+            1000
+          ]
+        }
+      ],
+      "confidence": 96,
+      "recommendation": "reject",
+      "notes": "1 defect(s) confirmed by zoomed verification"
+    }
+  },
+  {
+    "pair": "metal_nut_bent_1",
+    "truth": true,
+    "truth_type": "bent",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "reject",
+    "confidence": 96,
+    "pred_types": [
+      "missing_material"
+    ],
+    "latency_s": 24.88,
+    "loc": {
+      "hit": true,
+      "coverage": 0.29719667104686814,
+      "precision": 0.25842696629213485,
+      "whole_part_box": false
+    },
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "missing_material",
+          "severity": "major",
+          "description": "A portion of the right-side wing is broken off, showing a jagged and incomplete edge that deviates significantly from the smooth profile of a good part.",
+          "box_2d": [
+            432,
+            874,
+            600,
+            1000
+          ]
+        }
+      ],
+      "confidence": 96,
+      "recommendation": "reject",
+      "notes": "1 defect(s) confirmed by zoomed verification"
+    }
+  },
+  {
+    "pair": "metal_nut_bent_2",
+    "truth": true,
+    "truth_type": "bent",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "reject",
+    "confidence": 96,
+    "pred_types": [
+      "missing_material"
+    ],
+    "latency_s": 17.29,
+    "loc": {
+      "hit": true,
+      "coverage": 0.005776330076004343,
+      "precision": 0.004188712522045855,
+      "whole_part_box": false
+    },
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "missing_material",
+          "severity": "critical",
+          "description": "The top-right arm of the part has a significant piece broken off, resulting in a jagged and incomplete edge compared to the smooth, curved edges of the golden samples. This is a severe structural defect.",
+          "box_2d": [
+            0,
+            760,
+            270,
+            1000
+          ]
+        }
+      ],
+      "confidence": 96,
+      "recommendation": "reject",
+      "notes": "1 defect(s) confirmed by zoomed verification"
+    }
+  },
+  {
+    "pair": "metal_nut_bent_3",
+    "truth": true,
+    "truth_type": "bent",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "reject",
+    "confidence": 95,
+    "pred_types": [
+      "missing_material"
+    ],
+    "latency_s": 13.42,
+    "loc": {
+      "hit": false,
+      "coverage": 0.0,
+      "precision": 0.0,
+      "whole_part_box": false
+    },
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "missing_material",
+          "severity": "major",
+          "description": "Chipped edge with missing material on the top-left arm, resulting in a jagged and irregular profile.",
+          "box_2d": [
+            0,
+            325,
+            60,
+            415
+          ]
+        }
+      ],
+      "confidence": 95,
+      "recommendation": "reject",
+      "notes": "1 defect(s) confirmed by zoomed verification"
+    }
+  },
+  {
+    "pair": "metal_nut_color_0",
+    "truth": true,
+    "truth_type": "color",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "reject",
+    "confidence": 98,
+    "pred_types": [
+      "scratch"
+    ],
+    "latency_s": 14.55,
+    "loc": {
+      "hit": true,
+      "coverage": 0.7686034658511722,
+      "precision": 0.3193032847252909,
+      "whole_part_box": false
+    },
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "scratch",
+          "severity": "major",
+          "description": "A prominent, dark, fibrous-looking linear mark or scratch is present on the upper right arm of the part, deviating significantly from the normal surface finish and appearing to be a deep gouge or embedded foreign material.",
+          "box_2d": [
+            76,
+            620,
+            494,
+            886
+          ]
+        }
+      ],
+      "confidence": 98,
+      "recommendation": "reject",
+      "notes": "1 defect(s) confirmed by zoomed verification"
+    }
+  },
+  {
+    "pair": "metal_nut_color_1",
+    "truth": true,
+    "truth_type": "color",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "rework",
+    "confidence": 96,
+    "pred_types": [
+      "discoloration"
+    ],
+    "latency_s": 13.94,
+    "loc": {
+      "hit": true,
+      "coverage": 0.8887108521485797,
+      "precision": 0.6917233560090703,
+      "whole_part_box": false
+    },
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "discoloration",
+          "severity": "major",
+          "description": "Dark, irregular stain on the surface of the nut, adjacent to the central hole. This appears to be foreign material or a burnt area.",
+          "box_2d": [
+            320,
+            670,
+            470,
+            790
+          ]
+        }
+      ],
+      "confidence": 96,
+      "recommendation": "rework",
+      "notes": "1 defect(s) confirmed by zoomed verification"
+    }
+  },
+  {
+    "pair": "metal_nut_color_2",
+    "truth": true,
+    "truth_type": "color",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "rework",
+    "confidence": 98,
+    "pred_types": [
+      "discoloration"
+    ],
+    "latency_s": 26.57,
+    "loc": {
+      "hit": true,
+      "coverage": 0.6722423146473779,
+      "precision": 0.26225749559082895,
+      "whole_part_box": false
+    },
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "discoloration",
+          "severity": "major",
+          "description": "Dark blue, elongated stain or foreign material on the surface of the part, near the central hole. This is not a natural surface variation.",
+          "box_2d": [
+            445,
+            280,
+            595,
+            358
+          ]
+        }
+      ],
+      "confidence": 98,
+      "recommendation": "rework",
+      "notes": "1 defect(s) confirmed by zoomed verification"
+    }
+  },
+  {
+    "pair": "metal_nut_color_3",
+    "truth": true,
+    "truth_type": "color",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "rework",
+    "confidence": 96,
+    "pred_types": [
+      "discoloration"
+    ],
+    "latency_s": 14.25,
+    "loc": {
+      "hit": true,
+      "coverage": 0.6894803548795945,
+      "precision": 0.10279667422524566,
+      "whole_part_box": false
+    },
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "discoloration",
+          "severity": "major",
+          "description": "Multiple distinct dark blue spots of foreign material are present on the metallic surface, indicating contamination.",
+          "box_2d": [
+            655,
+            615,
+            835,
+            795
+          ]
+        }
+      ],
+      "confidence": 96,
+      "recommendation": "rework",
+      "notes": "1 defect(s) confirmed by zoomed verification"
+    }
+  },
+  {
+    "pair": "metal_nut_flip_0",
+    "truth": true,
+    "truth_type": "flip",
+    "pred": false,
+    "correct": false,
+    "safe": false,
+    "false_alarm": false,
+    "recommendation": "accept",
+    "confidence": 95,
+    "pred_types": [],
+    "latency_s": 3.17,
+    "loc": null,
+    "raw": {
+      "defect_found": false,
+      "defects": [],
+      "confidence": 95,
+      "recommendation": "accept",
+      "notes": "no defect in first pass"
+    }
+  },
+  {
+    "pair": "metal_nut_flip_1",
+    "truth": true,
+    "truth_type": "flip",
+    "pred": false,
+    "correct": false,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "retake_photo",
+    "confidence": 30,
+    "pred_types": [],
+    "latency_s": 4.31,
+    "loc": null,
+    "raw": {
+      "defect_found": false,
+      "defects": [],
+      "confidence": 30,
+      "recommendation": "retake_photo",
+      "notes": "no defect in first pass"
+    }
+  },
+  {
+    "pair": "metal_nut_flip_2",
+    "truth": true,
+    "truth_type": "flip",
+    "pred": false,
+    "correct": false,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "retake_photo",
+    "confidence": 30,
+    "pred_types": [],
+    "latency_s": 3.18,
+    "loc": null,
+    "raw": {
+      "defect_found": false,
+      "defects": [],
+      "confidence": 30,
+      "recommendation": "retake_photo",
+      "notes": "no defect in first pass"
+    }
+  },
+  {
+    "pair": "metal_nut_flip_3",
+    "truth": true,
+    "truth_type": "flip",
+    "pred": false,
+    "correct": false,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "retake_photo",
+    "confidence": 40,
+    "pred_types": [],
+    "latency_s": 5.62,
+    "loc": null,
+    "raw": {
+      "defect_found": false,
+      "defects": [],
+      "confidence": 40,
+      "recommendation": "retake_photo",
+      "notes": "no defect in first pass"
+    }
+  },
+  {
+    "pair": "metal_nut_good_0",
+    "truth": false,
+    "truth_type": "good",
+    "pred": false,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "accept",
+    "confidence": 100,
+    "pred_types": [],
+    "latency_s": 4.62,
+    "loc": null,
+    "raw": {
+      "defect_found": false,
+      "defects": [],
+      "confidence": 100,
+      "recommendation": "accept",
+      "notes": "no defect in first pass"
+    }
+  },
+  {
+    "pair": "metal_nut_good_1",
+    "truth": false,
+    "truth_type": "good",
+    "pred": false,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "accept",
+    "confidence": 95,
+    "pred_types": [],
+    "latency_s": 4.09,
+    "loc": null,
+    "raw": {
+      "defect_found": false,
+      "defects": [],
+      "confidence": 95,
+      "recommendation": "accept",
+      "notes": "no defect in first pass"
+    }
+  },
+  {
+    "pair": "metal_nut_good_2",
+    "truth": false,
+    "truth_type": "good",
+    "pred": false,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "accept",
+    "confidence": 95,
+    "pred_types": [],
+    "latency_s": 3.28,
+    "loc": null,
+    "raw": {
+      "defect_found": false,
+      "defects": [],
+      "confidence": 95,
+      "recommendation": "accept",
+      "notes": "no defect in first pass"
+    }
+  },
+  {
+    "pair": "metal_nut_good_3",
+    "truth": false,
+    "truth_type": "good",
+    "pred": false,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "accept",
+    "confidence": 100,
+    "pred_types": [],
+    "latency_s": 5.63,
+    "loc": null,
+    "raw": {
+      "defect_found": false,
+      "defects": [],
+      "confidence": 100,
+      "recommendation": "accept",
+      "notes": "no defect in first pass"
+    }
+  },
+  {
+    "pair": "metal_nut_scratch_0",
+    "truth": true,
+    "truth_type": "scratch",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "rework",
+    "confidence": 98,
+    "pred_types": [
+      "scratch"
+    ],
+    "latency_s": 12.9,
+    "loc": {
+      "hit": true,
+      "coverage": 0.8612791408958065,
+      "precision": 0.24559567416710273,
+      "whole_part_box": false
+    },
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "scratch",
+          "severity": "major",
+          "description": "Multiple distinct, dark, and deep linear scratch marks are visible on the surface, inconsistent with the normal machining marks and surface finish observed in the golden samples. These marks appear to be gouges.",
+          "box_2d": [
+            90,
+            150,
+            480,
+            420
+          ]
+        }
+      ],
+      "confidence": 98,
+      "recommendation": "rework",
+      "notes": "1 defect(s) confirmed by zoomed verification"
+    }
+  },
+  {
+    "pair": "metal_nut_scratch_1",
+    "truth": true,
+    "truth_type": "scratch",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "reject",
+    "confidence": 96,
+    "pred_types": [
+      "deformation",
+      "deformation"
+    ],
+    "latency_s": 23.24,
+    "loc": {
+      "hit": true,
+      "coverage": 0.3119551681195517,
+      "precision": 0.2353932894809574,
+      "whole_part_box": false
+    },
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "deformation",
+          "severity": "major",
+          "description": "Deep, linear gouge or cut on the top right arm of the t-nut.",
+          "box_2d": [
+            196,
+            650,
+            404,
+            832
+          ]
+        },
+        {
+          "type": "deformation",
+          "severity": "major",
+          "description": "A deep, linear gouge or cut across the bottom left arm and extending towards the central body of the t-nut. This is a significant surface imperfection.",
+          "box_2d": [
+            726,
+            90,
+            882,
+            324
+          ]
+        }
+      ],
+      "confidence": 96,
+      "recommendation": "reject",
+      "notes": "2 defect(s) confirmed by zoomed verification"
+    }
+  },
+  {
+    "pair": "metal_nut_scratch_2",
+    "truth": true,
+    "truth_type": "scratch",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "reject",
+    "confidence": 95,
+    "pred_types": [
+      "deformation"
+    ],
+    "latency_s": 11.83,
+    "loc": {
+      "hit": true,
+      "coverage": 0.122230823104427,
+      "precision": 0.09667638483965015,
+      "whole_part_box": false
+    },
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "deformation",
+          "severity": "major",
+          "description": "A distinct, prominent horizontal band or flattened area is visible across the center of the part, disrupting the normal circular machining patterns and surface texture. This anomaly is not present in the golden samples.",
+          "box_2d": [
+            450,
+            150,
+            550,
+            850
+          ]
+        }
+      ],
+      "confidence": 95,
+      "recommendation": "reject",
+      "notes": "1 defect(s) confirmed by zoomed verification"
+    }
+  },
+  {
+    "pair": "metal_nut_scratch_3",
+    "truth": true,
+    "truth_type": "scratch",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "rework",
+    "confidence": 96,
+    "pred_types": [
+      "scratch"
+    ],
+    "latency_s": 12.4,
+    "loc": {
+      "hit": true,
+      "coverage": 0.7334751668989803,
+      "precision": 0.3886491739552964,
+      "whole_part_box": false
+    },
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "scratch",
+          "severity": "major",
+          "description": "A distinct area of intersecting linear scratches and abrasions on the surface of the lobe, inconsistent with the normal machining marks seen in the golden samples.",
+          "box_2d": [
+            75,
+            675,
+            425,
+            975
+          ]
+        }
+      ],
+      "confidence": 96,
+      "recommendation": "rework",
+      "notes": "1 defect(s) confirmed by zoomed verification"
+    }
+  },
+  {
+    "pair": "screw_good_0",
+    "truth": false,
+    "truth_type": "good",
+    "pred": false,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "accept",
+    "confidence": 95,
+    "pred_types": [],
+    "latency_s": 4.32,
+    "loc": null,
+    "raw": {
+      "defect_found": false,
+      "defects": [],
+      "confidence": 95,
+      "recommendation": "accept",
+      "notes": "no defect in first pass"
+    }
+  },
+  {
+    "pair": "screw_good_1",
+    "truth": false,
+    "truth_type": "good",
+    "pred": false,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "accept",
+    "confidence": 100,
+    "pred_types": [],
+    "latency_s": 4.2,
+    "loc": null,
+    "raw": {
+      "defect_found": false,
+      "defects": [],
+      "confidence": 100,
+      "recommendation": "accept",
+      "notes": "no defect in first pass"
+    }
+  },
+  {
+    "pair": "screw_good_2",
+    "truth": false,
+    "truth_type": "good",
+    "pred": false,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "accept",
+    "confidence": 95,
+    "pred_types": [],
+    "latency_s": 5.33,
+    "loc": null,
+    "raw": {
+      "defect_found": false,
+      "defects": [],
+      "confidence": 95,
+      "recommendation": "accept",
+      "notes": "no defect in first pass"
+    }
+  },
+  {
+    "pair": "screw_manipulated_front_0",
+    "truth": true,
+    "truth_type": "manipulated_front",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "reject",
+    "confidence": 95,
+    "pred_types": [
+      "missing_material"
+    ],
+    "latency_s": 12.49,
+    "loc": {
+      "hit": false,
+      "coverage": 0.0,
+      "precision": 0.0,
+      "whole_part_box": false
+    },
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "missing_material",
+          "severity": "major",
+          "description": "The very tip of the screw is blunted and appears to have missing material, making it less pointed and sharp compared to the golden samples.",
+          "box_2d": [
+            590,
+            0,
+            650,
+            30
+          ]
+        }
+      ],
+      "confidence": 95,
+      "recommendation": "reject",
+      "notes": "1 defect(s) confirmed by zoomed verification"
+    }
+  },
+  {
+    "pair": "screw_manipulated_front_1",
+    "truth": true,
+    "truth_type": "manipulated_front",
+    "pred": false,
+    "correct": false,
+    "safe": false,
+    "false_alarm": false,
+    "recommendation": "accept",
+    "confidence": 100,
+    "pred_types": [],
+    "latency_s": 9.44,
+    "loc": null,
+    "raw": {
+      "defect_found": false,
+      "defects": [],
+      "confidence": 100,
+      "recommendation": "accept",
+      "notes": "first-pass flags rejected as normal variation by verifier"
+    }
+  },
+  {
+    "pair": "screw_manipulated_front_2",
+    "truth": true,
+    "truth_type": "manipulated_front",
+    "pred": false,
+    "correct": false,
+    "safe": false,
+    "false_alarm": false,
+    "recommendation": "accept",
+    "confidence": 95,
+    "pred_types": [],
+    "latency_s": 9.77,
+    "loc": null,
+    "raw": {
+      "defect_found": false,
+      "defects": [],
+      "confidence": 95,
+      "recommendation": "accept",
+      "notes": "first-pass flags rejected as normal variation by verifier"
+    }
+  },
+  {
+    "pair": "screw_scratch_head_0",
+    "truth": true,
+    "truth_type": "scratch_head",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "rework",
+    "confidence": 98,
+    "pred_types": [
+      "discoloration"
+    ],
+    "latency_s": 16.32,
+    "loc": {
+      "hit": true,
+      "coverage": 0.3350572589582564,
+      "precision": 0.001771916971916972,
+      "whole_part_box": false
+    },
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "discoloration",
+          "severity": "major",
+          "description": "The screw exhibits a widespread, dull, and darker surface discoloration across the entire visible part, including the head, unthreaded shaft, and threads, which deviates significantly from the bright, uniform metallic finish of the golden samples.",
+          "box_2d": [
+            190,
+            100,
+            800,
+            900
+          ]
+        }
+      ],
+      "confidence": 98,
+      "recommendation": "rework",
+      "notes": "1 defect(s) confirmed by zoomed verification"
+    }
+  },
+  {
+    "pair": "screw_scratch_head_1",
+    "truth": true,
+    "truth_type": "scratch_head",
+    "pred": false,
+    "correct": false,
+    "safe": false,
+    "false_alarm": false,
+    "recommendation": "accept",
+    "confidence": 98,
+    "pred_types": [],
+    "latency_s": 3.99,
+    "loc": null,
+    "raw": {
+      "defect_found": false,
+      "defects": [],
+      "confidence": 98,
+      "recommendation": "accept",
+      "notes": "no defect in first pass"
+    }
+  },
+  {
+    "pair": "screw_scratch_head_2",
+    "truth": true,
+    "truth_type": "scratch_head",
+    "pred": false,
+    "correct": false,
+    "safe": false,
+    "false_alarm": false,
+    "recommendation": "accept",
+    "confidence": 95,
+    "pred_types": [],
+    "latency_s": 3.58,
+    "loc": null,
+    "raw": {
+      "defect_found": false,
+      "defects": [],
+      "confidence": 95,
+      "recommendation": "accept",
+      "notes": "no defect in first pass"
+    }
+  },
+  {
+    "pair": "screw_scratch_neck_0",
+    "truth": true,
+    "truth_type": "scratch_neck",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "reject",
+    "confidence": 95,
+    "pred_types": [
+      "discoloration"
+    ],
+    "latency_s": 25.7,
+    "loc": {
+      "hit": true,
+      "coverage": 0.4070390206579954,
+      "precision": 0.22652757078986588,
+      "whole_part_box": false
+    },
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "discoloration",
+          "severity": "minor",
+          "description": "A distinct, bright white, irregular spot is present on the screw shaft, indicating a surface anomaly or coating defect not observed on the golden samples.",
+          "box_2d": [
+            285,
+            464,
+            360,
+            524
+          ]
+        }
+      ],
+      "confidence": 95,
+      "recommendation": "reject",
+      "notes": "1 defect(s) confirmed by zoomed verification"
+    }
+  },
+  {
+    "pair": "screw_scratch_neck_1",
+    "truth": true,
+    "truth_type": "scratch_neck",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "reject",
+    "confidence": 96,
+    "pred_types": [
+      "deformation"
+    ],
+    "latency_s": 12.8,
+    "loc": {
+      "hit": true,
+      "coverage": 0.5165612206922218,
+      "precision": 0.10448660042155977,
+      "whole_part_box": false
+    },
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "deformation",
+          "severity": "major",
+          "description": "Significant deformation or excess material on the screw shaft, appearing as a raised, irregular lump between the threaded section and the head.",
+          "box_2d": [
+            400,
+            520,
+            520,
+            625
+          ]
+        }
+      ],
+      "confidence": 96,
+      "recommendation": "reject",
+      "notes": "1 defect(s) confirmed by zoomed verification"
+    }
+  },
+  {
+    "pair": "screw_scratch_neck_2",
+    "truth": true,
+    "truth_type": "scratch_neck",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "reject",
+    "confidence": 98,
+    "pred_types": [
+      "dent"
+    ],
+    "latency_s": 22.32,
+    "loc": {
+      "hit": false,
+      "coverage": 0.0,
+      "precision": 0.0,
+      "whole_part_box": false
+    },
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "dent",
+          "severity": "major",
+          "description": "A distinct, localized indentation is present on the shaft of the screw, causing a clear deformation of the material.",
+          "box_2d": [
+            388,
+            470,
+            490,
+            560
+          ]
+        }
+      ],
+      "confidence": 98,
+      "recommendation": "reject",
+      "notes": "1 defect(s) confirmed by zoomed verification"
+    }
+  },
+  {
+    "pair": "screw_thread_side_0",
+    "truth": true,
+    "truth_type": "thread_side",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "reject",
+    "confidence": 98,
+    "pred_types": [
+      "deformation"
+    ],
+    "latency_s": 16.27,
+    "loc": {
+      "hit": true,
+      "coverage": 1.0,
+      "precision": 0.009235559290953545,
+      "whole_part_box": false
+    },
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "deformation",
+          "severity": "major",
+          "description": "The threaded shaft of the screw is significantly bent, deviating from a straight axis.",
+          "box_2d": [
+            100,
+            300,
+            850,
+            700
+          ]
+        }
+      ],
+      "confidence": 98,
+      "recommendation": "reject",
+      "notes": "1 defect(s) confirmed by zoomed verification"
+    }
+  },
+  {
+    "pair": "screw_thread_side_1",
+    "truth": true,
+    "truth_type": "thread_side",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "reject",
+    "confidence": 98,
+    "pred_types": [
+      "deformation"
+    ],
+    "latency_s": 16.59,
+    "loc": {
+      "hit": true,
+      "coverage": 1.0,
+      "precision": 0.014329465664060554,
+      "whole_part_box": false
+    },
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "deformation",
+          "severity": "major",
+          "description": "The threaded section of the screw is visibly bent and deformed, with uneven and distorted threads.",
+          "box_2d": [
+            404,
+            344,
+            860,
+            680
+          ]
+        }
+      ],
+      "confidence": 98,
+      "recommendation": "reject",
+      "notes": "1 defect(s) confirmed by zoomed verification"
+    }
+  },
+  {
+    "pair": "screw_thread_side_2",
+    "truth": true,
+    "truth_type": "thread_side",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "reject",
+    "confidence": 95,
+    "pred_types": [
+      "deformation"
+    ],
+    "latency_s": 19.46,
+    "loc": {
+      "hit": false,
+      "coverage": 0.0,
+      "precision": 0.0,
+      "whole_part_box": false
+    },
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "deformation",
+          "severity": "major",
+          "description": "The threads in the middle section of the screw are visibly deformed, squashed, and irregular compared to the uniform threads of good parts.",
+          "box_2d": [
+            375,
+            325,
+            669,
+            619
+          ]
+        }
+      ],
+      "confidence": 95,
+      "recommendation": "reject",
+      "notes": "1 defect(s) confirmed by zoomed verification"
+    }
+  },
+  {
+    "pair": "screw_thread_top_0",
+    "truth": true,
+    "truth_type": "thread_top",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "reject",
+    "confidence": 95,
+    "pred_types": [
+      "deformation"
+    ],
+    "latency_s": 15.26,
+    "loc": {
+      "hit": true,
+      "coverage": 1.0,
+      "precision": 0.011504065663139518,
+      "whole_part_box": false
+    },
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "deformation",
+          "severity": "major",
+          "description": "The threads on the screw are visibly deformed, flattened, and lack the sharp, consistent profile observed in the golden samples. This malformation is particularly evident from the middle of the threaded shaft towards the tip.",
+          "box_2d": [
+            380,
+            260,
+            900,
+            740
+          ]
+        }
+      ],
+      "confidence": 95,
+      "recommendation": "reject",
+      "notes": "1 defect(s) confirmed by zoomed verification"
+    }
+  },
+  {
+    "pair": "screw_thread_top_1",
+    "truth": true,
+    "truth_type": "thread_top",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "reject",
+    "confidence": 96,
+    "pred_types": [
+      "deformation"
+    ],
+    "latency_s": 17.38,
+    "loc": {
+      "hit": true,
+      "coverage": 0.25567559104430876,
+      "precision": 0.05019055815097123,
+      "whole_part_box": false
+    },
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "deformation",
+          "severity": "major",
+          "description": "Severe deformation and flattening of the threads in the middle section of the screw shaft, with apparent crushed or missing material. The helical structure is significantly disrupted.",
+          "box_2d": [
+            404,
+            429,
+            566,
+            621
+          ]
+        }
+      ],
+      "confidence": 96,
+      "recommendation": "reject",
+      "notes": "1 defect(s) confirmed by zoomed verification"
+    }
+  },
+  {
+    "pair": "screw_thread_top_2",
+    "truth": true,
+    "truth_type": "thread_top",
+    "pred": false,
+    "correct": false,
+    "safe": false,
+    "false_alarm": false,
+    "recommendation": "accept",
+    "confidence": 95,
+    "pred_types": [],
+    "latency_s": 4.19,
+    "loc": null,
+    "raw": {
+      "defect_found": false,
+      "defects": [],
+      "confidence": 95,
+      "recommendation": "accept",
+      "notes": "no defect in first pass"
+    }
+  }
+]

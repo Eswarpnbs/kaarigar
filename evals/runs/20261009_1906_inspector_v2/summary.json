@@ -1,0 +1,15 @@
+{
+  "run": "20261009_1906_inspector_v2",
+  "model": "gemini-2.5-flash",
+  "pairs": 38,
+  "errors": 0,
+  "detection_accuracy_pct": 76.3,
+  "defect_recall_pct": 71.0,
+  "safe_outcome_pct": 80.6,
+  "false_alarm_pct": 0.0,
+  "loc_hit_pct": 81.8,
+  "avg_defect_coverage": 0.492,
+  "avg_box_precision": 0.146,
+  "whole_part_boxes": 0,
+  "avg_latency_s": 11.893
+}
