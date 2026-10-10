@@ -148,7 +148,7 @@ def main():
                 for m in MACHINES:
                     mine = [e for e in episodes if e["machine_id"] == m["machine_id"]]
                     if any(is_down(ts, e) for e in mine):
-                        w.writerow([ts.isoformat(timespec="minutes"), m["machine_id"], shift, "down",
+                        w.writerow([ts.isoformat(timespec="seconds"), m["machine_id"], shift, "down",
                                     0, round(m["temp"] - 8 + rng.gauss(0, 0.5), 1), 0.0, 0.0,
                                     counts[m["machine_id"]], True])
                         rows += 1
@@ -163,7 +163,7 @@ def main():
                         rpm *= 1 + eff.get("rpm_pct", 0) / 100 * lvl
                     counts[m["machine_id"]] += max(0, round(INTERVAL_MIN * 60 / m["cycle_s"] + rng.gauss(0, 0.4)))
                     w.writerow([
-                        ts.isoformat(timespec="minutes"), m["machine_id"], shift, "running",
+                        ts.isoformat(timespec="seconds"), m["machine_id"], shift, "running",
                         round(rpm + rng.gauss(0, rpm * 0.01)),
                         round(temp + rng.gauss(0, 0.8), 1),
                         round(max(0.1, vib + rng.gauss(0, 0.15)), 2),
