@@ -92,15 +92,15 @@ GROUP BY hour ORDER BY hour
 """
 
 
-def _slope_per_hour(values: List[float]) -> float:
-    """Least-squares slope (units per hour) of an hourly series."""
-    n = len(values)
-    if n < 2:
+def _slope_per_hour(xs: List[float], ys: List[float]) -> float:
+    """Least-squares slope (units per hour). xs = real hours since the first point,
+    so gaps (e.g. no night shift) are handled correctly."""
+    n = len(ys)
+    if n < 3:
         return 0.0
-    xs = range(n)
-    mx, my = (n - 1) / 2, sum(values) / n
+    mx, my = sum(xs) / n, sum(ys) / n
     den = sum((x - mx) ** 2 for x in xs)
-    return sum((x - mx) * (y - my) for x, y in zip(xs, values)) / den if den else 0.0
+    return sum((x - mx) * (y - my) for x, y in zip(xs, ys)) / den if den else 0.0
 
 
 def _level(metric: str, change: float) -> str:
@@ -179,7 +179,11 @@ def machine_health(machine_id: str, recent_hours: int = 3) -> dict:
     trend_rows = _run(_TREND_SQL, [bigquery.ScalarQueryParameter("mid", "STRING", mid),
                                    bigquery.ScalarQueryParameter("trend_h", "INT64", 12)])
     hourly = [round(t["vib"], 2) for t in trend_rows]
-    slope = _slope_per_hour(hourly)
+    t0 = trend_rows[0]["hour"] if trend_rows else None
+    xs = [(t["hour"] - t0).total_seconds() / 3600 for t in trend_rows]
+    slope = _slope_per_hour(xs, hourly)
+    # "rising" only if the climb is meaningful: > 2% of normal vibration per hour
+    rise_threshold = 0.02 * base["vibration_mm_s"]
 
     status = ("critical" if "critical" in levels else
               "warning" if "warning" in levels else "normal")
@@ -192,7 +196,8 @@ def machine_health(machine_id: str, recent_hours: int = 3) -> dict:
         "metrics": metrics,
         "vibration_trend": {
             "per_hour": round(slope, 3),
-            "direction": "rising" if slope > 0.05 else ("falling" if slope < -0.05 else "stable"),
+            "direction": ("rising" if slope > rise_threshold else
+                          "falling" if slope < -rise_threshold else "stable"),
             "hourly_last_12h": hourly,
         },
         "pattern_hints": _hints(changes),
@@ -229,6 +234,6 @@ def factory_overview(recent_hours: int = 3) -> dict:
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
-        print(json.dumps(machine_health(sys.argv[1]), indent=2, default=str))
+        print(json.dumps(machine_health(sys.argv[1]), indent=2, default=str, ensure_ascii=False))
     else:
-        print(json.dumps(factory_overview(), indent=2, default=str))
+        print(json.dumps(factory_overview(), indent=2, default=str, ensure_ascii=False))
