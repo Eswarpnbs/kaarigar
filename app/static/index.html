@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kaarigar — AI quality co-pilot for small factories</title>
+<style>
+:root{--bg:#0f1115;--card:#171a21;--line:#262b36;--text:#e8eaed;--muted:#9aa0a6;--brand:#f59e0b;--ok:#22c55e;--bad:#ef4444}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text)}
+header{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.logo{font-weight:800;font-size:22px;color:var(--brand)}.tag{color:var(--muted);font-size:14px}
+.badge{font-size:11px;padding:3px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+main{display:grid;grid-template-columns:270px 1fr 300px;gap:16px;padding:16px;max-width:1400px;margin:auto}
+@media(max-width:1100px){main{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 10px}
+button{font:inherit;border:0;border-radius:8px;padding:9px 14px;cursor:pointer;background:#2a3040;color:var(--text)}
+button.primary{background:var(--brand);color:#111;font-weight:700}button.ok{background:var(--ok);color:#06210f;font-weight:700}
+button.bad{background:#3a1d1d;color:#fca5a5}button:disabled{opacity:.5;cursor:default}
+.part{padding:8px 10px;border-radius:8px;cursor:pointer;border:1px solid transparent;margin-bottom:4px}
+.part:hover,.part.sel{border-color:var(--brand);background:#1d2130}
+.small{font-size:12px;color:var(--muted)}
+.imgs{display:grid;grid-template-columns:1fr 1fr;gap:10px}.imgwrap{position:relative}.imgwrap img{width:100%;border-radius:8px;display:block}
+.box{position:absolute;border:3px solid var(--bad);border-radius:4px}
+.step{border-left:3px solid var(--line);padding:4px 0 4px 14px;margin:14px 0}.step.done{border-color:var(--ok)}.step.run{border-color:var(--brand)}
+.chip{display:inline-block;padding:3px 9px;border-radius:999px;font-size:12px;margin:2px 4px 2px 0;background:#232838}
+.chip.bad{background:#3a1d1d;color:#fca5a5}.chip.ok{background:#12301d;color:#86efac}.chip.warn{background:#3a2e12;color:#fcd34d}
+.banner{background:#3a2e12;border:1px solid #6b5416;color:#fde68a;padding:10px;border-radius:8px;margin:8px 0}
+ol,ul{padding-left:20px;margin:6px 0}li{margin:3px 0}
+.log div{font-size:12px;padding:6px 0;border-bottom:1px dashed var(--line)}.log b{color:var(--brand)}
+.machine{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px}
+pre{white-space:pre-wrap;font-size:12px;background:#0b0d11;padding:10px;border-radius:8px;max-height:420px;overflow:auto}
+.spinner{display:inline-block;width:12px;height:12px;border:2px solid var(--muted);border-top-color:transparent;border-radius:50%;animation:s 1s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes s{to{transform:rotate(360deg)}}
+footer{color:var(--muted);font-size:12px;text-align:center;padding:16px}
+</style></head><body>
+<header><span class="logo">Kaarigar</span><span class="tag">One photo of a good part, one phone, zero training.</span>
+<span class="badge">AI informs · humans decide</span><span class="badge">Machine data SIMULATED · past records SYNTHETIC</span></header>
+<main>
+<section class="card"><button class="primary" id="demoBtn" style="width:100%;margin-bottom:12px">▶ Try the demo</button>
+<h2>Parts</h2><div id="parts"></div><h2 style="margin-top:16px">Factory (live)</h2><div id="factory" class="small">Loading…</div></section>
+<section class="card"><div id="flow"><p class="small">Pick a part or press <b>Try the demo</b>. Kaarigar inspects it against golden samples, finds the root cause, and drafts a work order for a supervisor to approve.</p></div></section>
+<section class="card"><h2>Agent reasoning</h2><div id="log" class="log"><div class="small">Each step the agents take appears here.</div></div></section>
+</main>
+<footer>Demo images: MVTec AD (CC BY-NC-SA 4.0). Prototype by Team Sankalp, Google Cloud AI Builder Cup 2026.</footer>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let t0=0;
+function log(agent,msg){const d=document.createElement('div');d.innerHTML=`<b>${esc(agent)}</b> · ${esc(msg)} <span class="small">(${((performance.now()-t0)/1000).toFixed(1)}s)</span>`;$('#log').appendChild(d);d.scrollIntoView({block:'nearest'})}
+async function api(path,opts={}){const r=await fetch(path,{method:opts.method||'GET',headers:{'Content-Type':'application/json'},body:opts.body?JSON.stringify(opts.body):undefined});
+ if(!r.ok)throw new Error(await r.text());return (r.headers.get('content-type')||'').includes('json')?r.json():r.text()}
+function stepEl(id,title){let el=document.getElementById(id);if(!el){el=document.createElement('div');el.id=id;$('#flow').appendChild(el)}
+ el.className='step run';el.innerHTML=`<h2>${esc(title)}</h2><div><span class="spinner"></span><span class="small">Working…</span></div>`;el.scrollIntoView({behavior:'smooth',block:'nearest'});return el}
+function done(el,html){el.className='step done';el.querySelector('div').outerHTML=`<div>${html}</div>`}
+async function loadParts(){const {parts}=await api('/api/parts');
+ $('#parts').innerHTML=parts.map(p=>`<div class="part" data-id="${esc(p.part_id)}">${esc(p.part_id)}<br><span class="small">${esc(p.product)} · ${esc(p.machine_id)}</span></div>`).join('');
+ document.querySelectorAll('.part').forEach(e=>e.onclick=()=>run(e.dataset.id))}
+async function loadFactory(){try{const f=await api('/api/factory');
+ $('#factory').innerHTML=f.machines.map(m=>`<div class="machine"><span>${esc(m.machine_id)}</span><span class="chip ${m.health==='critical'?'bad':m.health==='warning'?'warn':'ok'}">${esc(m.health)}${m.health!=='normal'?' · vib '+esc(m.vibration_change):''}</span></div>`).join('')+`<div class="small">${esc(f.data_note||'')}</div>`}
+ catch(e){$('#factory').textContent='Factory data unavailable'}}
+async function run(partId){
+ t0=performance.now();$('#log').innerHTML='';$('#flow').innerHTML='';
+ document.querySelectorAll('.part').forEach(e=>e.classList.toggle('sel',e.dataset.id===partId));
+ let el=stepEl('s1','1 · Detect — Inspector agent');log('Inspector','Comparing the photo with golden samples');
+ const ins=await api(`/api/inspect/${partId}`,{method:'POST'});
+ const boxes=(ins.defects||[]).map(d=>{const [y0,x0,y1,x1]=d.box_2d;return `<div class="box" style="top:${y0/10}%;left:${x0/10}%;width:${(x1-x0)/10}%;height:${(y1-y0)/10}%"></div>`}).join('');
+ const conf=ins.confidence>=85?'Sure':ins.confidence>=60?'Please check':'Retake photo';
+ done(el,`<div class="imgs"><div><div class="small">Golden sample</div><div class="imgwrap"><img src="/api/parts/${partId}/image/golden" alt="golden sample"></div></div>
+ <div><div class="small">This part</div><div class="imgwrap"><img src="/api/parts/${partId}/image/test" alt="test part">${boxes}</div></div></div>
+ <p>${ins.defect_found?'<span class="chip bad">Defect found</span>':'<span class="chip ok">No defect</span>'}<span class="chip">${esc(conf)} (${esc(ins.confidence)})</span><span class="chip">Recommendation: ${esc(ins.recommendation)}</span></p>
+ ${(ins.defects||[]).map(d=>`<p><b>${esc(d.type)}</b> · ${esc(d.severity)} · ${esc(d.location)}: ${esc(d.description)}</p>`).join('')}`);
+ log('Inspector',ins.defect_found?`Found ${ins.defects.length} defect(s), confidence ${ins.confidence}`:'No defect found');
+ if(!ins.defect_found){log('Kaarigar','Part accepted. Nothing to diagnose.');return}
+ el=stepEl('s2','2 · Diagnose — Diagnosis agent');log('Diagnosis','Gathering machine data, Factory Memory and SOPs');
+ const dg=await api(`/api/diagnose/${partId}`,{method:'POST'});const r=dg.report,eu=dg.evidence_used;
+ log('Diagnosis',`Machine ${dg.part?.machine_id||''}: ${eu.machine_health}; ${eu.similar_past_defects.length} similar past cases; SOPs ${eu.sops.join(', ')}`);
+ done(el,`<p>${esc(r.summary)}</p>
+ ${eu.recurrence?`<div class="banner">⚠ Recurring problem: ${esc(eu.recurrence.cases.map(c=>`${c.defect_id}, ${c.days_ago} days ago (fix: ${c.fix})`).join('; '))}. The earlier fix did not last.</div>`:''}
+ ${r.likely_causes.map(c=>`<p><span class="chip ${c.likelihood==='high'?'bad':'warn'}">${esc(c.likelihood)}</span><span class="chip">${esc(c.category_6m)}</span><b>${esc(c.cause)}</b></p><ul>${c.evidence.map(e=>`<li class="small">${esc(e)}</li>`).join('')}</ul>`).join('')}
+ <h2>5 Whys</h2><ol>${r.five_whys.map(w=>`<li><b>${esc(w.question)}</b><br><span class="small">${esc(w.answer)}</span></li>`).join('')}</ol>
+ <p><span class="chip">Confidence ${esc(r.confidence)}%</span>${r.needs_human_check?'<span class="chip warn">Human should verify</span>':''}${(dg.invalid_citations_removed||[]).length?'<span class="chip warn">Unsupported claims removed</span>':''}</p>
+ <button class="primary" id="woBtn">Create work order + 8D</button>`);
+ log('Diagnosis',`Root cause: ${r.likely_causes[0]?.cause||'unclear'} (${r.confidence}%)`);
+ $('#woBtn').onclick=()=>workOrder(partId);
+}
+async function workOrder(partId){
+ $('#woBtn').disabled=true;const el=stepEl('s3','3 · Act — Action agent');log('Action','Drafting work order and 8D report');
+ const wo=(await api(`/api/work-orders/${partId}`,{method:'POST'})).work_order;
+ done(el,`<p><span class="chip bad">${esc(wo.priority)}</span><span class="chip">${esc(wo.wo_id)}</span><span class="chip warn">Pending supervisor approval</span></p>
+ <h2>Containment</h2><ul>${wo.eight_d.d3_containment.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>
+ <h2>Tasks</h2><ol>${wo.tasks.map(t=>`<li>${esc(t.action)} <span class="small">(${esc(t.owner_role)}, ${esc(t.urgency)}${t.sop_ref?', '+esc(t.sop_ref):''})</span></li>`).join('')}</ol>
+ <p><button class="ok" id="apBtn">Approve (supervisor)</button> <button class="bad" id="rjBtn">Reject</button> <button id="d8Btn">View 8D report</button></p><div id="d8"></div>`);
+ log('Action',`${wo.wo_id} created, ${wo.priority}. Waiting for a human decision.`);
+ $('#apBtn').onclick=()=>decide(wo.wo_id,true);$('#rjBtn').onclick=()=>decide(wo.wo_id,false);
+ $('#d8Btn').onclick=async()=>{$('#d8').innerHTML=`<pre>${esc(await api(`/api/work-orders/${wo.wo_id}/8d`))}</pre>`};
+}
+async function decide(woId,approve){
+ $('#apBtn').disabled=$('#rjBtn').disabled=true;const el=stepEl('s4','4 · Verify');
+ const wo=(await api(`/api/work-orders/${woId}/decision`,{method:'POST',body:{approve,comment:approve?'Approved in Kaarigar UI':'Rejected in Kaarigar UI'}})).work_order;
+ log('Supervisor',approve?`Approved ${woId}`:`Rejected ${woId}`);
+ done(el,approve?`<p><span class="chip ok">Approved by supervisor</span></p><p>Verification due by ${esc(wo.verification.due_by)}: ${esc(wo.verification.plan)}</p>`
+  :`<p><span class="chip bad">Rejected</span> No action taken. The diagnosis stays on record for review.</p>`);
+ if(approve)log('Kaarigar','Re-check scheduled: Detect → Diagnose → Act → Verify');
+}
+$('#demoBtn').onclick=()=>run('metal_nut_scratch_0');
+window.addEventListener('unhandledrejection',e=>log('Error',e.reason?.message||String(e.reason)));
+loadParts();loadFactory();
+</script></body></html>

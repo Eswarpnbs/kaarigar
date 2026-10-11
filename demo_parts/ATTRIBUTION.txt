@@ -1,0 +1,1 @@
+Demo images from the MVTec AD dataset (CC BY-NC-SA 4.0), used for non-commercial evaluation.

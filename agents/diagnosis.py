@@ -19,7 +19,7 @@ from agents.tools.machine_data import machine_health
 
 REPO = Path(__file__).resolve().parents[1]
 SEED = REPO / "data" / "seed"
-PAIRS = REPO / "data" / "pairs"
+PAIRS = Path(os.environ.get("KAARIGAR_PAIRS_DIR", str(REPO / "data" / "pairs")))
 CACHE = REPO / "data" / "cache" / "inspections"
 MODEL = os.environ.get("KAARIGAR_DIAGNOSIS_MODEL", os.environ.get("KAARIGAR_MODEL", "gemini-2.5-flash"))
 
