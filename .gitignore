@@ -10,3 +10,4 @@ evals/runs/*/images/
 data/sim/
 data/cache/
 adk_app/**/.adk/
+adk_app/**/.adk/
