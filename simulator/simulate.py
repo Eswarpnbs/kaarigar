@@ -25,9 +25,9 @@ SHIFTS = [("A", 6, 14), ("B", 14, 22)]  # (name, start hour, end hour); night is
 MACHINES = [
     {"machine_id": "M1", "name": "CNC Lathe 1", "type": "cnc_lathe", "rpm": 2400, "temp": 42, "vib": 1.8, "load": 55, "cycle_s": 90, "x": 1, "y": 1},
     {"machine_id": "M2", "name": "CNC Lathe 2", "type": "cnc_lathe", "rpm": 2200, "temp": 41, "vib": 1.9, "load": 52, "cycle_s": 95, "x": 2, "y": 1},
-    {"machine_id": "M3", "name": "VMC 1", "type": "vmc", "rpm": 6000, "temp": 45, "vib": 2.2, "load": 60, "cycle_s": 180, "x": 3, "y": 1},
-    {"machine_id": "M4", "name": "Drilling Machine", "type": "drill", "rpm": 1500, "temp": 38, "vib": 1.5, "load": 45, "cycle_s": 40, "x": 1, "y": 2},
-    {"machine_id": "M5", "name": "Surface Grinder", "type": "grinder", "rpm": 2900, "temp": 40, "vib": 1.2, "load": 40, "cycle_s": 120, "x": 2, "y": 2},
+    {"machine_id": "M3", "name": "Gear Hobbing Machine", "type": "gear_hobbing", "rpm": 600, "temp": 44, "vib": 2.2, "load": 60, "cycle_s": 240, "x": 3, "y": 1},
+    {"machine_id": "M4", "name": "Shaping Machine", "type": "shaper", "rpm": 60, "temp": 38, "vib": 2.6, "load": 45, "cycle_s": 300, "x": 1, "y": 2},
+    {"machine_id": "M5", "name": "Band Saw", "type": "band_saw", "rpm": 900, "temp": 36, "vib": 1.4, "load": 40, "cycle_s": 120, "x": 2, "y": 2},
 ]
 
 # Problem type -> sensor effects at full severity, and the defects it causes
@@ -89,7 +89,7 @@ def make_episodes(start: datetime, end: datetime, rng: random.Random):
     ep_start = end - timedelta(hours=10)
     episodes.append({
         "episode_id": f"EP{len(plan) + 1:02d}",
-        "machine_id": "M3",
+        "machine_id": "M1",
         "problem": "bearing_wear",
         "start": ep_start.isoformat(timespec="minutes"),
         "peak": (end + timedelta(hours=6)).isoformat(timespec="minutes"),  # still rising
