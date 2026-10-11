@@ -9,3 +9,4 @@ data/pairs/
 evals/runs/*/images/
 data/sim/
 data/cache/
+adk_app/**/.adk/
