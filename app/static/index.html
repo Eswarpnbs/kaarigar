@@ -56,21 +56,22 @@ async function loadParts(){const {parts}=await api('/api/parts');
 async function loadFactory(){try{const f=await api('/api/factory');
  $('#factory').innerHTML=f.machines.map(m=>`<div class="machine"><span>${esc(m.machine_id)}</span><span class="chip ${m.health==='critical'?'bad':m.health==='warning'?'warn':'ok'}">${esc(m.health)}${m.health!=='normal'?' · vib '+esc(m.vibration_change):''}</span></div>`).join('')+`<div class="small">${esc(f.data_note||'')}</div>`}
  catch(e){$('#factory').textContent='Factory data unavailable'}}
-async function run(partId){
+async function run(partId,fresh=false){
  t0=performance.now();$('#log').innerHTML='';$('#flow').innerHTML='';
  document.querySelectorAll('.part').forEach(e=>e.classList.toggle('sel',e.dataset.id===partId));
  let el=stepEl('s1','1 · Detect — Inspector agent');log('Inspector','Comparing the photo with golden samples');
- const ins=await api(`/api/inspect/${partId}`,{method:'POST'});
+ const ins=await api(`/api/inspect/${partId}?fresh=${fresh}`,{method:'POST'});
  const boxes=(ins.defects||[]).map(d=>{const [y0,x0,y1,x1]=d.box_2d;return `<div class="box" style="top:${y0/10}%;left:${x0/10}%;width:${(x1-x0)/10}%;height:${(y1-y0)/10}%"></div>`}).join('');
  const conf=ins.confidence>=85?'Sure':ins.confidence>=60?'Please check':'Retake photo';
  done(el,`<div class="imgs"><div><div class="small">Golden sample</div><div class="imgwrap"><img src="/api/parts/${partId}/image/golden" alt="golden sample"></div></div>
  <div><div class="small">This part</div><div class="imgwrap"><img src="/api/parts/${partId}/image/test" alt="test part">${boxes}</div></div></div>
- <p>${ins.defect_found?'<span class="chip bad">Defect found</span>':'<span class="chip ok">No defect</span>'}<span class="chip">${esc(conf)} (${esc(ins.confidence)})</span><span class="chip">Recommendation: ${esc(ins.recommendation)}</span></p>
+ <p>${ins.defect_found?'<span class="chip bad">Defect found</span>':'<span class="chip ok">No defect</span>'}<span class="chip">${esc(conf)} (${esc(ins.confidence)})</span><span class="chip">Recommendation: ${esc(ins.recommendation)}</span>${ins.from_cache?'<span class="chip warn">Stored result from an earlier live run</span> <button id="liveBtn">Run live (~30 s)</button>':'<span class="chip ok">Live result</span>'}</p>
  ${(ins.defects||[]).map(d=>`<p><b>${esc(d.type)}</b> · ${esc(d.severity)} · ${esc(d.location)}: ${esc(d.description)}</p>`).join('')}`);
  log('Inspector',ins.defect_found?`Found ${ins.defects.length} defect(s), confidence ${ins.confidence}`:'No defect found');
+ if($('#liveBtn'))$('#liveBtn').onclick=()=>run(partId,true);
  if(!ins.defect_found){log('Kaarigar','Part accepted. Nothing to diagnose.');return}
  el=stepEl('s2','2 · Diagnose — Diagnosis agent');log('Diagnosis','Gathering machine data, Factory Memory and SOPs');
- const dg=await api(`/api/diagnose/${partId}`,{method:'POST'});const r=dg.report,eu=dg.evidence_used;
+ const dg=await api(`/api/diagnose/${partId}?fresh=${fresh}`,{method:'POST'});const r=dg.report,eu=dg.evidence_used;
  log('Diagnosis',`Machine ${dg.part?.machine_id||''}: ${eu.machine_health}; ${eu.similar_past_defects.length} similar past cases; SOPs ${eu.sops.join(', ')}`);
  done(el,`<p>${esc(r.summary)}</p>
  ${eu.recurrence?`<div class="banner">⚠ Recurring problem: ${esc(eu.recurrence.cases.map(c=>`${c.defect_id}, ${c.days_ago} days ago (fix: ${c.fix})`).join('; '))}. The earlier fix did not last.</div>`:''}

@@ -17,7 +17,7 @@ from zoneinfo import ZoneInfo
 from pydantic import BaseModel, Field
 
 from agents.diagnosis import CACHE as INSPECTION_CACHE
-from agents.diagnosis import MACHINES, SEVERITY_RANK, diagnose_part, part_info
+from agents.diagnosis import MACHINES, SEVERITY_RANK, _sops, diagnose_part, part_info
 from agents.inspector import _generate
 
 REPO = Path(__file__).resolve().parents[1]
@@ -92,7 +92,8 @@ experienced quality engineer would. Use ONLY the evidence below. Be concise and 
   machine since the problem started; stop the machine if the diagnosis marks it immediate.
 - D4: state the root cause and why it was not caught earlier, in plain words from the evidence.
   If a recurrence is present, explain that the earlier fix did not last and why that matters.
-- D6: measurable checks (e.g. vibration back to normal range, next 5 parts inspected OK).
+- D6: measurable checks. For machine limits use the NORMAL RANGE stated in the SOP evidence
+  (never use the median baseline value as a limit), plus next 5 parts inspected OK.
 - D7: prevention through SOP updates, checks, or monitoring.
 - This is a DRAFT for supervisor approval. Machine data in this prototype is SIMULATED.
 
@@ -160,7 +161,8 @@ def create_work_order(part_id: str) -> dict:
 
     evidence = {"part": info, "machine": MACHINES.get(mid, ("", ""))[0], "defect": main,
                 "diagnosis": rep, "machine_health": health,
-                "recurrence": diag.get("evidence_used", {}).get("recurrence")}
+                "recurrence": diag.get("evidence_used", {}).get("recurrence"),
+                "sops": {x: _sops().get(x, "") for x in diag.get("evidence_used", {}).get("sops", [])}}
     eight_d: EightD = _generate(MODEL, [PROMPT_8D.format(evidence=json.dumps(evidence, indent=1, default=str))], EightD)
 
     wo_id = f"WO-{datetime.now(IST):%y%m%d}-{uuid.uuid4().hex[:4].upper()}"

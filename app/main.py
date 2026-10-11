@@ -86,8 +86,14 @@ def inspect_part(part_id: str, fresh: bool = False):
 
 
 @app.post("/api/diagnose/{part_id}")
-def diagnose(part_id: str):
-    return act.get_diagnosis(part_id)
+def diagnose(part_id: str, fresh: bool = False):
+    f = act.DIAG_CACHE / f"{part_id}.json"
+    if fresh and f.exists():
+        f.unlink()
+    try:
+        return act.get_diagnosis(part_id)
+    except Exception as e:
+        raise HTTPException(503, f"Diagnosis service is busy, please try again ({type(e).__name__})")
 
 
 @app.post("/api/work-orders/{part_id}")

@@ -48,7 +48,7 @@ def client() -> genai.Client:
             vertexai=True, project=PROJECT, location=LOCATION,
             # 90 s timeout: a hung request fails fast and gets retried instead of
             # blocking the whole run forever
-            http_options=types.HttpOptions(timeout=90_000),
+            http_options=types.HttpOptions(timeout=180_000),
         )
     return _client
 
