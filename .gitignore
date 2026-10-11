@@ -8,3 +8,4 @@ out/
 data/pairs/
 evals/runs/*/images/
 data/sim/
+data/cache/
