@@ -1,0 +1,16 @@
+{
+  "run": "20261010_0838_v3_pro_58",
+  "model": "gemini-2.5-flash",
+  "pairs": 58,
+  "errors": 0,
+  "detection_accuracy_pct": 69.0,
+  "defect_recall_pct": 87.1,
+  "safe_outcome_pct": 96.8,
+  "false_alarm_pct": 51.9,
+  "good_escalated_pct": 0.0,
+  "loc_hit_pct": 85.2,
+  "avg_defect_coverage": 0.553,
+  "avg_box_precision": 0.185,
+  "whole_part_boxes": 0,
+  "avg_latency_s": 25.734
+}

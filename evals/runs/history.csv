@@ -2,3 +2,4 @@ run,model,pairs,errors,detection_accuracy_pct,defect_recall_pct,safe_outcome_pct
 20261008_1817_baseline,gemini-2.5-flash,38,0,78.9,87.1,96.8,57.1,75.0,0.399,0.127,3,7.887
 20261009_1906_inspector_v2,gemini-2.5-flash,38,0,76.3,71.0,80.6,0.0,81.8,0.492,0.146,0,11.893
 20261009_1925_inspector_v3,gemini-2.5-flash,38,0,78.9,83.9,96.8,42.9,0.0,80.8,0.364,0.092,0,21.313
+20261010_0838_v3_pro_58,gemini-2.5-flash,58,0,69.0,87.1,96.8,51.9,0.0,85.2,0.553,0.185,0,25.734
