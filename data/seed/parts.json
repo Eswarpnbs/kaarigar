@@ -15,6 +15,14 @@
       "material": "EN1A steel",
       "supplier": "Supplier C",
       "batch": "C-1005"
+    },
+    {
+      "prefix": "real_cover_",
+      "product": "Aluminium cover AC-40 (real photo: Mahadevapura)",
+      "machine_id": "IN",
+      "material": "Aluminium casting",
+      "supplier": "Supplier D",
+      "batch": "D-0101"
     }
   ],
   "synthetic": true
