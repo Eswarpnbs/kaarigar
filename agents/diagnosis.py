@@ -229,6 +229,11 @@ def diagnose(machine_id: str, defect_type: str, description: str, product: str =
     if report.similar_case_id and f"past_defect:{report.similar_case_id}" not in valid:
         removed.append(report.similar_case_id)
         report.similar_case_id, report.similar_case_note = "", ""
+    # Evidence-strength guard (computed in code): thin evidence -> cap confidence, require a human check
+    strong = bool(hints) or len(similar) >= 2 or ("recurrence_check" in valid)
+    if not strong:
+        report.confidence = min(report.confidence, 70)
+        report.needs_human_check = True
     if removed:
         report.needs_human_check = True
 
