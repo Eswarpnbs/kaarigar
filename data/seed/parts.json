@@ -1,0 +1,21 @@
+{
+  "rules": [
+    {
+      "prefix": "metal_nut_",
+      "product": "Flange nut FN-24",
+      "machine_id": "M1",
+      "material": "EN8 steel",
+      "supplier": "Supplier A",
+      "batch": "A-1003"
+    },
+    {
+      "prefix": "screw_",
+      "product": "Machine screw MS-8",
+      "machine_id": "M2",
+      "material": "EN1A steel",
+      "supplier": "Supplier C",
+      "batch": "C-1005"
+    }
+  ],
+  "synthetic": true
+}
