@@ -74,7 +74,7 @@ async function run(partId,fresh=false){
  if(!ins.defect_found){log('Kaarigar','Part accepted. Nothing to diagnose.');return}
  el=stepEl('s2','2 · Diagnose — Diagnosis agent');log('Diagnosis','Gathering machine data, Factory Memory and SOPs');
  const dg=await api(`/api/diagnose/${partId}?fresh=${fresh}`,{method:'POST'});const r=dg.report,eu=dg.evidence_used;
- log('Diagnosis',`Machine ${dg.part?.machine_id||''}: ${eu.machine_health}; ${eu.similar_past_defects.length} similar past cases; SOPs ${eu.sops.join(', ')}`);
+ log('Diagnosis',`Machine ${dg.part?.machine_id||''}: ${eu.machine_health}; ${eu.similar_past_defects.length} similar past cases (${(eu.semantic_matches||[]).length} found by meaning); SOPs ${eu.sops.join(', ')}`);
  done(el,`<p>${esc(r.summary)}</p>
  ${eu.recurrence?`<div class="banner">⚠ Recurring problem, occurrence #${eu.recurrence.cases.length+1}: ${esc(eu.recurrence.cases.map(c=>`${c.defect_id}, ${c.days_ago} days ago (fix: ${c.fix})`).join('; '))}. The earlier fix did not last.</div>`:''}
  ${r.likely_causes.map(c=>`<p><span class="chip ${c.likelihood==='high'?'bad':'warn'}">${esc(c.likelihood)}</span><span class="chip">${esc(c.category_6m)}</span><b>${esc(c.cause)}</b></p><ul>${c.evidence.map(e=>`<li class="small">${esc(e)}</li>`).join('')}</ul>`).join('')}

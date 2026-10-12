@@ -182,6 +182,18 @@ def diagnose(machine_id: str, defect_type: str, description: str, product: str =
             hints = [h["problem"] for h in mh.get("pattern_hints", [])]
 
     similar = similar_past_defects(machine_id, defect_type, product, supplier, batch)
+    similar_kw = list(similar)                      # keyword matches (used for confidence)
+    try:
+        from agents.memory import semantic_search
+        sem = semantic_search(f"{MACHINES.get(machine_id, ('', ''))[0]} {product} {defect_type}: {description}",
+                              k=3, min_score=0.65)
+    except Exception:
+        sem = []
+    by_id = {r["defect_id"]: r for r in _past()}
+    for did, _score in sem:                          # add meaning-based matches (Factory Memory)
+        if did in by_id and all(x["defect_id"] != did for x in similar):
+            similar.append(by_id[did])
+    similar = similar[:5]
     for r in similar:
         evidence[f"past_defect:{r['defect_id']}"] = r
         valid.add(f"past_defect:{r['defect_id']}")
@@ -244,7 +256,7 @@ def diagnose(machine_id: str, defect_type: str, description: str, product: str =
         removed.append(report.similar_case_id)
         report.similar_case_id, report.similar_case_note = "", ""
     # Evidence-strength guard (computed in code): thin evidence -> cap confidence, require a human check
-    strong = bool(hints) or len(similar) >= 2 or ("recurrence_check" in valid)
+    strong = bool(hints) or len(similar_kw) >= 2 or ("recurrence_check" in valid)
     if not strong:
         report.confidence = min(report.confidence, 70)
         report.needs_human_check = True
@@ -260,6 +272,7 @@ def diagnose(machine_id: str, defect_type: str, description: str, product: str =
             "similar_past_defects": [{k: r[k] for k in ("defect_id", "date", "machine_id", "defect_type",
                                                          "root_cause", "fix")} for r in similar],
             "sops": sop_ids,
+            "semantic_matches": [{"defect_id": d, "similarity": sc} for d, sc in sem],
             "supplier_history": evidence.get("supplier_history"),
             "recurrence": evidence.get("recurrence_check"),
         },
