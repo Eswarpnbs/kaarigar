@@ -129,5 +129,82 @@ def machine(machine_id: str):
     return machine_health(machine_id)
 
 
+
+# ---------------- Voice report + Text-to-Speech ----------------
+from typing import Literal
+from fastapi import File, UploadFile
+from fastapi.responses import Response
+from pydantic import Field
+from google.genai import types as gtypes
+from agents.inspector import MODEL as GEMINI_MODEL, _generate, client as gemini_client
+from agents.diagnosis import MACHINES, diagnose as diagnose_report_fn
+
+class VoiceReport(BaseModel):
+    language: str = Field(description="language spoken, e.g. Kannada, Hindi, Telugu, English")
+    language_code: str = Field(description="BCP-47 code: kn-IN, hi-IN, te-IN, ta-IN, ml-IN, mr-IN or en-IN")
+    transcript_original: str
+    transcript_english: str
+    machine_id: str = Field(description="M1..M5 if mentioned or clearly implied, else empty")
+    defect_type: Literal["scratch", "dent", "crack", "rust", "deformation", "discoloration", "missing_material",
+                         "burr", "dimension_out_of_tolerance", "poor_surface_finish", "chatter_marks", "other"]
+    description: str = Field(description="the problem in clear English, including any noise, smell, heat or vibration")
+
+VOICE_PROMPT = """A worker in a small Indian machine shop is reporting a problem by voice. Transcribe exactly
+(original language), translate to English, and fill the report. Machines in this shop:
+M1 = CNC Lathe 1, M2 = CNC Lathe 2, M3 = Gear Hobbing Machine, M4 = Shaping Machine, M5 = Band Saw.
+Map spoken names (e.g. "lathe one", "first lathe", "hobbing") to these IDs. If no machine is mentioned, leave
+machine_id empty. Never invent details that were not said."""
+
+@app.post("/api/voice")
+async def voice(audio: UploadFile = File(...)):
+    data = await audio.read()
+    if not data or len(data) > 10_000_000:
+        raise HTTPException(413, "Recording is empty or too long (keep it under about a minute).")
+    mime = (audio.content_type or "audio/webm").split(";")[0]
+    try:
+        rep = _generate(GEMINI_MODEL, [gtypes.Part.from_bytes(data=data, mime_type=mime), VOICE_PROMPT], VoiceReport)
+    except Exception as e:
+        raise HTTPException(503, f"Could not understand the recording, please try again ({type(e).__name__})")
+    return rep.model_dump()
+
+class ProblemReport(BaseModel):
+    machine_id: str
+    defect_type: str
+    description: str
+
+@app.post("/api/diagnose-report")
+def diagnose_report(r: ProblemReport):
+    if r.machine_id not in MACHINES:
+        raise HTTPException(400, "Please mention which machine (for example: lathe 1).")
+    try:
+        return diagnose_report_fn(r.machine_id, r.defect_type, r.description)
+    except Exception as e:
+        raise HTTPException(503, f"Diagnosis service is busy, please try again ({type(e).__name__})")
+
+TTS_LANGS = {"en-IN", "hi-IN", "kn-IN", "te-IN", "ta-IN", "ml-IN", "mr-IN", "gu-IN", "bn-IN"}
+
+class SpeakRequest(BaseModel):
+    text: str
+    language_code: str = "en-IN"
+
+@app.post("/api/speak")
+def speak(req: SpeakRequest):
+    from google.cloud import texttospeech
+    lang = req.language_code if req.language_code in TTS_LANGS else "en-IN"
+    text = req.text[:1200]
+    try:
+        if lang != "en-IN":
+            text = gemini_client().models.generate_content(
+                model=GEMINI_MODEL,
+                contents=[f"Translate for a factory supervisor into simple spoken language ({lang}). "
+                          f"Keep machine IDs like M1 and numbers unchanged. Output only the translation:\n{text}"]).text
+        audio = texttospeech.TextToSpeechClient().synthesize_speech(
+            input=texttospeech.SynthesisInput(text=text),
+            voice=texttospeech.VoiceSelectionParams(language_code=lang),
+            audio_config=texttospeech.AudioConfig(audio_encoding=texttospeech.AudioEncoding.MP3)).audio_content
+    except Exception as e:
+        raise HTTPException(503, f"Speech is unavailable right now ({type(e).__name__})")
+    return Response(content=audio, media_type="audio/mpeg")
+
 if STATIC.exists():
     app.mount("/", StaticFiles(directory=STATIC, html=True), name="static")

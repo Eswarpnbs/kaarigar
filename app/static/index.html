@@ -35,7 +35,8 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:16px}
 <span class="badge">AI informs · humans decide</span><span class="badge">Machine data SIMULATED · past records SYNTHETIC</span></header>
 <main>
 <section class="card"><button class="primary" id="demoBtn" style="width:100%;margin-bottom:8px">▶ Try the demo</button>
-<button id="realBtn" style="width:100%;margin-bottom:12px">▶ Real factory part (Peenya)</button>
+<button id="realBtn" style="width:100%;margin-bottom:8px">▶ Real factory part (Peenya)</button>
+<button id="micBtn" style="width:100%;margin-bottom:12px">🎙 Report a problem by voice</button>
 <h2>Parts</h2><div id="parts"></div><h2 style="margin-top:16px">Factory (live)</h2><div id="factory" class="small">Loading…</div></section>
 <section class="card"><div id="flow"><p class="small">Pick a part or press <b>Try the demo</b>. Kaarigar inspects it against golden samples, finds the root cause, and drafts a work order for a supervisor to approve.</p></div></section>
 <section class="card"><h2>Agent reasoning</h2><div id="log" class="log"><div class="small">Each step the agents take appears here.</div></div></section>
@@ -105,5 +106,53 @@ async function decide(woId,approve){
 $('#demoBtn').onclick=()=>run('metal_nut_scratch_0');
 $('#realBtn').onclick=()=>run('real_bar_rust_0');
 window.addEventListener('unhandledrejection',e=>log('Error',e.reason?.message||String(e.reason)));
+
+let rec=null,chunks=[];
+async function toggleMic(){
+ const b=$('#micBtn');
+ if(rec&&rec.state==='recording'){rec.stop();b.textContent='🎙 Report a problem by voice';return}
+ try{const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+  rec=new MediaRecorder(stream);chunks=[];
+  rec.ondataavailable=e=>chunks.push(e.data);
+  rec.onstop=()=>{stream.getTracks().forEach(t=>t.stop());voiceFlow(new Blob(chunks,{type:rec.mimeType||'audio/webm'}))};
+  rec.start();b.textContent='⏹ Stop recording';
+ }catch(e){alert('Microphone not available: '+e.message)}
+}
+async function voiceFlow(blob){
+ t0=performance.now();$('#log').innerHTML='';$('#flow').innerHTML='';
+ let el=stepEl('v1','0 · Listen — voice report');log('Kaarigar','Understanding the voice report');
+ const fd=new FormData();fd.append('audio',blob,'report');
+ const r=await fetch('/api/voice',{method:'POST',body:fd});
+ if(!r.ok){done(el,`<p class="small">${esc(await r.text())}</p>`);return}
+ const v=await r.json();
+ done(el,`<p><span class="chip">${esc(v.language)}</span><span class="chip">${esc(v.machine_id||'machine?')}</span><span class="chip">${esc(v.defect_type)}</span></p>
+ <p>“${esc(v.transcript_original)}”</p><p class="small">English: ${esc(v.transcript_english)}</p>`);
+ log('Kaarigar',`Heard ${v.language}: ${v.machine_id||'no machine named'} · ${v.defect_type}`);
+ if(!v.machine_id){log('Kaarigar','Please say which machine (for example: lathe 1).');return}
+ el=stepEl('v2','2 · Diagnose — Diagnosis agent');log('Diagnosis','Gathering machine data, Factory Memory and SOPs');
+ const dg=await api('/api/diagnose-report',{method:'POST',body:{machine_id:v.machine_id,defect_type:v.defect_type,description:v.description}});
+ const rp=dg.report,eu=dg.evidence_used;
+ done(el,`<p>${esc(rp.summary)}</p>
+ ${eu.recurrence?`<div class="banner">⚠ Recurring problem, occurrence #${eu.recurrence.cases.length+1}: ${esc(eu.recurrence.cases.map(c=>`${c.defect_id}, ${c.days_ago} days ago`).join('; '))}</div>`:''}
+ ${rp.likely_causes.map(c=>`<p><span class="chip ${c.likelihood==='high'?'bad':'warn'}">${esc(c.likelihood)}</span><span class="chip">${esc(c.category_6m)}</span><b>${esc(c.cause)}</b></p>`).join('')}
+ <h2>Actions</h2><ol>${rp.recommended_actions.map(a=>`<li>${esc(a.action)} <span class="small">(${esc(a.owner_role)}, ${esc(a.urgency)})</span></li>`).join('')}</ol>
+ <p><span class="chip">Confidence ${esc(rp.confidence)}%</span>${rp.needs_human_check?'<span class="chip warn">Human should verify</span>':''}</p>
+ <button id="spkBtn">🔊 Listen in ${esc(v.language)}</button>`);
+ log('Diagnosis',`Root cause: ${rp.likely_causes[0]?.cause||'unclear'} (${rp.confidence}%)`);
+ $('#spkBtn').onclick=()=>speak(rp.summary+' '+(rp.recommended_actions[0]?.action||''),v.language_code);
+}
+let player=null,speaking=false;
+async function speak(text,lang){
+ if(speaking)return;
+ if(player&&!player.paused){player.pause();player=null;log('Kaarigar','Stopped speaking');return}
+ speaking=true;const b=$('#spkBtn');if(b)b.disabled=true;
+ log('Kaarigar',`Speaking in ${lang}`);
+ try{
+  const r=await fetch('/api/speak',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,language_code:lang})});
+  if(!r.ok){log('Error','Speech unavailable');return}
+  player=new Audio(URL.createObjectURL(await r.blob()));player.onended=()=>{player=null};player.play();
+ }finally{speaking=false;if(b)b.disabled=false}
+}
+$('#micBtn').onclick=toggleMic;
 loadParts();loadFactory();
 </script></body></html>
