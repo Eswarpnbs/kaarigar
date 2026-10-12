@@ -121,7 +121,24 @@ def eight_d(wo_id: str):
 
 @app.get("/api/factory")
 def factory():
-    return factory_overview()
+    f = factory_overview()
+    try:
+        from agents.tools.forecast import forecast_all
+        fa = forecast_all()
+        for m in f.get("machines", []):
+            fc = fa.get(m["machine_id"])
+            if fc and fc.get("status") == "success":
+                m["zone"] = fc["zone"]
+                m["hours_to_zone_d"] = fc["hours_to_zone_d"]["expected"]
+    except Exception:
+        pass
+    return f
+
+
+@app.get("/api/forecast/{machine_id}")
+def forecast(machine_id: str):
+    from agents.tools.forecast import forecast_machine
+    return forecast_machine(machine_id)
 
 
 @app.get("/api/machines/{machine_id}")

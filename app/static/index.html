@@ -58,7 +58,7 @@ async function loadParts(){const {parts}=await api('/api/parts');
  $('#parts').innerHTML=parts.map(p=>`<div class="part" data-id="${esc(p.part_id)}">${esc(p.part_id)}<br><span class="small">${esc(p.product)} · ${esc(p.machine_id)}</span></div>`).join('');
  document.querySelectorAll('.part').forEach(e=>e.onclick=()=>run(e.dataset.id))}
 async function loadFactory(){try{const f=await api('/api/factory');
- $('#factory').innerHTML=f.machines.map(m=>`<div class="machine"><span>${esc(m.machine_id)}</span><span class="chip ${m.health==='critical'?'bad':m.health==='warning'?'warn':'ok'}">${esc(m.health)}${m.health!=='normal'?' · vib '+esc(m.vibration_change):''}</span></div>`).join('')+`<div class="small">${esc(f.data_note||'')}</div>`}
+ $('#factory').innerHTML=f.machines.map(m=>`<div class="machine"><span>${esc(m.machine_id)}</span><span class="chip ${m.health==='critical'?'bad':m.health==='warning'?'warn':'ok'}">${esc(m.health)}${m.health!=='normal'?' · vib '+esc(m.vibration_change):''}${m.hours_to_zone_d!=null?' · damage zone in ~'+esc(m.hours_to_zone_d)+' h':''}</span></div>`).join('')+`<div class="small">${esc(f.data_note||'')}</div>`}
  catch(e){$('#factory').textContent='Factory data unavailable'}}
 async function run(partId,fresh=false){
  t0=performance.now();$('#log').innerHTML='';$('#flow').innerHTML='';
@@ -81,11 +81,13 @@ async function run(partId,fresh=false){
  log('Diagnosis',`Machine ${dg.part?.machine_id||''}: ${eu.machine_health}; ${eu.similar_past_defects.length} similar past cases (${(eu.semantic_matches||[]).length} found by meaning); SOPs ${eu.sops.join(', ')}`);
  tool('Diagnosis','machine_health',`${dg.part?.machine_id||''} → ${eu.machine_health}${(eu.pattern_hints||[]).length?' · hint: '+eu.pattern_hints.join(', '):''}`);
  tool('Diagnosis','factory_memory',(eu.similar_past_defects||[]).map(x=>x.defect_id).join(', ')+((eu.semantic_matches||[]).length?' · by meaning: '+eu.semantic_matches.map(m=>m.defect_id+' ('+m.similarity+')').join(', '):''));
+ tool('Diagnosis','forecast (BigQuery ML)',eu.forecast?`zone ${eu.forecast.zone} · damage zone in ~${eu.forecast.hours_to_zone_d?.expected??'n/a'} h`:'not applicable');
  tool('Diagnosis','sop_lookup',eu.sops.join(', ')||'none');
  tool('Diagnosis','recurrence_check',eu.recurrence?`${eu.recurrence.cases.length} earlier case(s) came back`:'no recurrence');
  if(eu.supplier_history)tool('Diagnosis','supplier_history',`${eu.supplier_history.supplier}: ${eu.supplier_history.material_issues_total} material issue(s), ${eu.supplier_history.same_batch_issues} in this batch`);
  tool('Diagnosis','citation_check',(dg.invalid_citations_removed||[]).length?`${dg.invalid_citations_removed.length} unsupported claim(s) removed`:'all claims backed by evidence');
  done(el,`<p>${esc(r.summary)}</p>
+ ${eu.forecast&&eu.forecast.hours_to_zone_d&&eu.forecast.hours_to_zone_d.expected!=null?`<div class="banner" style="background:#3a1d1d;border-color:#7f1d1d;color:#fecaca">⏱ Predict (BigQuery ML): left running, ${esc(eu.forecast.machine_id||'')} reaches ISO zone D (damage likely) in ~${esc(eu.forecast.hours_to_zone_d.expected)} h (range ${esc(eu.forecast.hours_to_zone_d.earliest)}–${esc(eu.forecast.hours_to_zone_d.latest)} h). Now ${esc(eu.forecast.latest_vibration)} mm/s, zone ${esc(eu.forecast.zone)}.</div>`:''}
  ${eu.recurrence?`<div class="banner">⚠ Recurring problem, occurrence #${eu.recurrence.cases.length+1}: ${esc(eu.recurrence.cases.map(c=>`${c.defect_id}, ${c.days_ago} days ago (fix: ${c.fix})`).join('; '))}. The earlier fix did not last.</div>`:''}
  ${r.likely_causes.map(c=>`<p><span class="chip ${c.likelihood==='high'?'bad':'warn'}">${esc(c.likelihood)}</span><span class="chip">${esc(c.category_6m)}</span><b>${esc(c.cause)}</b></p><ul>${c.evidence.map(e=>`<li class="small">${esc(e)}</li>`).join('')}</ul>`).join('')}
  <h2>5 Whys</h2><ol>${r.five_whys.map(w=>`<li><b>${esc(w.question)}</b><br><span class="small">${esc(w.answer)}</span></li>`).join('')}</ol>
@@ -145,6 +147,7 @@ async function voiceFlow(blob){
  const dg=await api('/api/diagnose-report',{method:'POST',body:{machine_id:v.machine_id,defect_type:v.defect_type,description:v.description}});
  const rp=dg.report,eu=dg.evidence_used;
  done(el,`<p>${esc(rp.summary)}</p>
+ ${eu.forecast&&eu.forecast.hours_to_zone_d&&eu.forecast.hours_to_zone_d.expected!=null?`<div class="banner" style="background:#3a1d1d;border-color:#7f1d1d;color:#fecaca">⏱ Predict (BigQuery ML): left running, ${esc(eu.forecast.machine_id||'')} reaches ISO zone D (damage likely) in ~${esc(eu.forecast.hours_to_zone_d.expected)} h (range ${esc(eu.forecast.hours_to_zone_d.earliest)}–${esc(eu.forecast.hours_to_zone_d.latest)} h). Now ${esc(eu.forecast.latest_vibration)} mm/s, zone ${esc(eu.forecast.zone)}.</div>`:''}
  ${eu.recurrence?`<div class="banner">⚠ Recurring problem, occurrence #${eu.recurrence.cases.length+1}: ${esc(eu.recurrence.cases.map(c=>`${c.defect_id}, ${c.days_ago} days ago`).join('; '))}</div>`:''}
  ${rp.likely_causes.map(c=>`<p><span class="chip ${c.likelihood==='high'?'bad':'warn'}">${esc(c.likelihood)}</span><span class="chip">${esc(c.category_6m)}</span><b>${esc(c.cause)}</b></p>`).join('')}
  <h2>Actions</h2><ol>${rp.recommended_actions.map(a=>`<li>${esc(a.action)} <span class="small">(${esc(a.owner_role)}, ${esc(a.urgency)})</span></li>`).join('')}</ol>

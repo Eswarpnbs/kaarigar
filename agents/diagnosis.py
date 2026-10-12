@@ -87,7 +87,7 @@ Rules:
   machine or supplier batch, use it. For repeated supplier problems, recommend a formal supplier corrective
   action request (SCAR), quarantine of the batch, and tighter incoming checks for that supplier.
 - Every cause must cite evidence_sources using ONLY the ids shown in the evidence (keys like
-  "machine_health:M1", "past_defect:D016", "SOP-02", "inspection", "part", "supplier_history", "recurrence_check").
+  "machine_health:M1", "past_defect:D016", "SOP-02", "inspection", "part", "supplier_history", "recurrence_check", "forecast:M1").
 - Do not invent numbers, dates, or records. If evidence is weak or conflicting, say so, lower the
   confidence, set needs_human_check=true, and list missing_information.
 - five_whys: exactly 5 steps, from the visible defect down to a root cause someone can fix.
@@ -95,6 +95,8 @@ Rules:
 - If recurrence_check is present, a recent fix did not last. Make the 5 Whys explain WHY the
   earlier fix failed (e.g. lubrication, installation, contamination, part quality) and add an action
   to verify the earlier fix (CAPA effectiveness). Cite recurrence_check.
+- If a forecast is present (computed by BigQuery ML, not by you), state in the summary how many hours
+  remain before the damage zone if nothing is done, set action urgency to match, and cite forecast:<machine>.
 - Machine sensor data is SIMULATED in this prototype; still reason from it.
 
 EVIDENCE (JSON):
@@ -180,6 +182,15 @@ def diagnose(machine_id: str, defect_type: str, description: str, product: str =
             evidence[f"machine_health:{machine_id}"] = mh
             valid.add(f"machine_health:{machine_id}")
             hints = [h["problem"] for h in mh.get("pattern_hints", [])]
+            try:
+                from agents.tools.forecast import forecast_machine
+                fc = forecast_machine(machine_id)
+                if fc.get("status") == "success":
+                    evidence[f"forecast:{machine_id}"] = {k: fc[k] for k in (
+                        "machine_id", "model", "latest_vibration", "zone", "zone_meaning", "limit", "hours_to_zone_d", "data_note")}
+                    valid.add(f"forecast:{machine_id}")
+            except Exception:
+                pass
 
     similar = similar_past_defects(machine_id, defect_type, product, supplier, batch)
     similar_kw = list(similar)                      # keyword matches (used for confidence)
@@ -275,6 +286,7 @@ def diagnose(machine_id: str, defect_type: str, description: str, product: str =
             "semantic_matches": [{"defect_id": d, "similarity": sc} for d, sc in sem],
             "supplier_history": evidence.get("supplier_history"),
             "recurrence": evidence.get("recurrence_check"),
+            "forecast": evidence.get(f"forecast:{machine_id}"),
         },
         "invalid_citations_removed": removed,
         "data_note": "Machine data SIMULATED; past defects and SOPs are SYNTHETIC samples (prototype)",
