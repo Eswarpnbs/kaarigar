@@ -82,6 +82,10 @@ PROMPT = """You are Kaarigar's Diagnosis agent: an experienced quality engineer 
 Find the most likely ROOT CAUSE of the defect using ONLY the evidence below.
 Rules:
 - Rank at most 3 causes, using 6M categories (Machine, Method, Material, Man, Measurement, Environment).
+- A cause must explain WHY the defect happened, never restate the defect itself (wrong: "material is rusty";
+  right: "bars stored wet at the supplier without oiling"). If past records give a root cause for the same
+  machine or supplier batch, use it. For repeated supplier problems, recommend a formal supplier corrective
+  action request (SCAR), quarantine of the batch, and tighter incoming checks for that supplier.
 - Every cause must cite evidence_sources using ONLY the ids shown in the evidence (keys like
   "machine_health:M1", "past_defect:D016", "SOP-02", "inspection", "part", "supplier_history", "recurrence_check").
 - Do not invent numbers, dates, or records. If evidence is weak or conflicting, say so, lower the
@@ -197,10 +201,20 @@ def diagnose(machine_id: str, defect_type: str, description: str, product: str =
                     and any(k in r["root_cause"].lower() for k in kw)):
                 recur.append({"defect_id": r["defect_id"], "date": r["date"], "days_ago": days,
                               "root_cause": r["root_cause"], "fix": r["fix"], "matches_hint": h})
+    if supplier and batch:
+        fam = RELATED.get(defect_type, set()) | {defect_type}
+        for r in _past():
+            days = (today - date.fromisoformat(r["date"])).days
+            if (r["supplier"] == supplier and r["batch"] == batch and r["defect_type"] in fam
+                    and r.get("fix_verified") and days <= 45
+                    and not any(c["defect_id"] == r["defect_id"] for c in recur)):
+                recur.append({"defect_id": r["defect_id"], "date": r["date"], "days_ago": days,
+                              "root_cause": r["root_cause"], "fix": r["fix"],
+                              "matches_hint": f"same supplier batch {batch}"})
     if recur:
         evidence["recurrence_check"] = {
-            "warning": "The same failure mode on this machine was fixed recently and has come back: "
-                       "the earlier fix did not address the true root cause.",
+            "warning": "The same problem (same machine or same supplier batch) was handled recently and has "
+                       "come back: the earlier fix did not address the true root cause.",
             "cases": recur}
         valid.add("recurrence_check")
         for r in recur:

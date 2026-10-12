@@ -34,7 +34,8 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:16px}
 <header><span class="logo">Kaarigar</span><span class="tag">One photo of a good part, one phone, zero training.</span>
 <span class="badge">AI informs · humans decide</span><span class="badge">Machine data SIMULATED · past records SYNTHETIC</span></header>
 <main>
-<section class="card"><button class="primary" id="demoBtn" style="width:100%;margin-bottom:12px">▶ Try the demo</button>
+<section class="card"><button class="primary" id="demoBtn" style="width:100%;margin-bottom:8px">▶ Try the demo</button>
+<button id="realBtn" style="width:100%;margin-bottom:12px">▶ Real factory part (Peenya)</button>
 <h2>Parts</h2><div id="parts"></div><h2 style="margin-top:16px">Factory (live)</h2><div id="factory" class="small">Loading…</div></section>
 <section class="card"><div id="flow"><p class="small">Pick a part or press <b>Try the demo</b>. Kaarigar inspects it against golden samples, finds the root cause, and drafts a work order for a supervisor to approve.</p></div></section>
 <section class="card"><h2>Agent reasoning</h2><div id="log" class="log"><div class="small">Each step the agents take appears here.</div></div></section>
@@ -74,7 +75,7 @@ async function run(partId,fresh=false){
  const dg=await api(`/api/diagnose/${partId}?fresh=${fresh}`,{method:'POST'});const r=dg.report,eu=dg.evidence_used;
  log('Diagnosis',`Machine ${dg.part?.machine_id||''}: ${eu.machine_health}; ${eu.similar_past_defects.length} similar past cases; SOPs ${eu.sops.join(', ')}`);
  done(el,`<p>${esc(r.summary)}</p>
- ${eu.recurrence?`<div class="banner">⚠ Recurring problem: ${esc(eu.recurrence.cases.map(c=>`${c.defect_id}, ${c.days_ago} days ago (fix: ${c.fix})`).join('; '))}. The earlier fix did not last.</div>`:''}
+ ${eu.recurrence?`<div class="banner">⚠ Recurring problem, occurrence #${eu.recurrence.cases.length+1}: ${esc(eu.recurrence.cases.map(c=>`${c.defect_id}, ${c.days_ago} days ago (fix: ${c.fix})`).join('; '))}. The earlier fix did not last.</div>`:''}
  ${r.likely_causes.map(c=>`<p><span class="chip ${c.likelihood==='high'?'bad':'warn'}">${esc(c.likelihood)}</span><span class="chip">${esc(c.category_6m)}</span><b>${esc(c.cause)}</b></p><ul>${c.evidence.map(e=>`<li class="small">${esc(e)}</li>`).join('')}</ul>`).join('')}
  <h2>5 Whys</h2><ol>${r.five_whys.map(w=>`<li><b>${esc(w.question)}</b><br><span class="small">${esc(w.answer)}</span></li>`).join('')}</ol>
  <p><span class="chip">Confidence ${esc(r.confidence)}%</span>${r.needs_human_check?'<span class="chip warn">Human should verify</span>':''}${(dg.invalid_citations_removed||[]).length?'<span class="chip warn">Unsupported claims removed</span>':''}</p>
@@ -102,6 +103,7 @@ async function decide(woId,approve){
  if(approve)log('Kaarigar','Re-check scheduled: Detect → Diagnose → Act → Verify');
 }
 $('#demoBtn').onclick=()=>run('metal_nut_scratch_0');
+$('#realBtn').onclick=()=>run('real_bar_rust_0');
 window.addEventListener('unhandledrejection',e=>log('Error',e.reason?.message||String(e.reason)));
 loadParts();loadFactory();
 </script></body></html>

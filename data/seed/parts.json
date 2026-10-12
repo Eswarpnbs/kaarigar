@@ -23,6 +23,14 @@
       "material": "Aluminium casting",
       "supplier": "Supplier D",
       "batch": "D-0101"
+    },
+    {
+      "prefix": "real_bar_",
+      "product": "EN8 round bar (incoming, real photo: Peenya)",
+      "machine_id": "IN",
+      "material": "EN8 steel",
+      "supplier": "Supplier B",
+      "batch": "B-0912"
     }
   ],
   "synthetic": true
