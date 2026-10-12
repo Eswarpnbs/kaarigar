@@ -29,6 +29,7 @@ ol,ul{padding-left:20px;margin:6px 0}li{margin:3px 0}
 pre{white-space:pre-wrap;font-size:12px;background:#0b0d11;padding:10px;border-radius:8px;max-height:420px;overflow:auto}
 .spinner{display:inline-block;width:12px;height:12px;border:2px solid var(--muted);border-top-color:transparent;border-radius:50%;animation:s 1s linear infinite;vertical-align:middle;margin-right:6px}
 @keyframes s{to{transform:rotate(360deg)}}
+code{font-size:11px;color:#fbbf24}
 footer{color:var(--muted);font-size:12px;text-align:center;padding:16px}
 </style></head><body>
 <header><span class="logo">Kaarigar</span><span class="tag">One photo of a good part, one phone, zero training.</span>
@@ -47,6 +48,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 let t0=0;
 function log(agent,msg){const d=document.createElement('div');d.innerHTML=`<b>${esc(agent)}</b> · ${esc(msg)} <span class="small">(${((performance.now()-t0)/1000).toFixed(1)}s)</span>`;$('#log').appendChild(d);d.scrollIntoView({block:'nearest'})}
+function tool(agent,name,detail){const d=document.createElement('div');d.innerHTML=`<span class="small">↳ <code>${esc(name)}</code> ${esc(detail)}</span>`;$('#log').appendChild(d)}
 async function api(path,opts={}){const r=await fetch(path,{method:opts.method||'GET',headers:{'Content-Type':'application/json'},body:opts.body?JSON.stringify(opts.body):undefined});
  if(!r.ok)throw new Error(await r.text());return (r.headers.get('content-type')||'').includes('json')?r.json():r.text()}
 function stepEl(id,title){let el=document.getElementById(id);if(!el){el=document.createElement('div');el.id=id;$('#flow').appendChild(el)}
@@ -70,11 +72,19 @@ async function run(partId,fresh=false){
  <p>${ins.defect_found?'<span class="chip bad">Defect found</span>':'<span class="chip ok">No defect</span>'}<span class="chip">${esc(conf)} (${esc(ins.confidence)})</span><span class="chip">Recommendation: ${esc(ins.recommendation)}</span>${ins.from_cache?'<span class="chip warn">Stored result from an earlier live run</span> <button id="liveBtn">Run live (~30 s)</button>':'<span class="chip ok">Live result</span>'}</p>
  ${(ins.defects||[]).map(d=>`<p><b>${esc(d.type)}</b> · ${esc(d.severity)} · ${esc(d.location)}: ${esc(d.description)}</p>`).join('')}`);
  log('Inspector',ins.defect_found?`Found ${ins.defects.length} defect(s), confidence ${ins.confidence}`:'No defect found');
+ tool('Inspector','golden_compare',ins.notes||'compared with golden samples');
+ tool('Inspector','locate_defect','box to words computed in code');
  if($('#liveBtn'))$('#liveBtn').onclick=()=>run(partId,true);
  if(!ins.defect_found){log('Kaarigar','Part accepted. Nothing to diagnose.');return}
  el=stepEl('s2','2 · Diagnose — Diagnosis agent');log('Diagnosis','Gathering machine data, Factory Memory and SOPs');
  const dg=await api(`/api/diagnose/${partId}?fresh=${fresh}`,{method:'POST'});const r=dg.report,eu=dg.evidence_used;
  log('Diagnosis',`Machine ${dg.part?.machine_id||''}: ${eu.machine_health}; ${eu.similar_past_defects.length} similar past cases (${(eu.semantic_matches||[]).length} found by meaning); SOPs ${eu.sops.join(', ')}`);
+ tool('Diagnosis','machine_health',`${dg.part?.machine_id||''} → ${eu.machine_health}${(eu.pattern_hints||[]).length?' · hint: '+eu.pattern_hints.join(', '):''}`);
+ tool('Diagnosis','factory_memory',(eu.similar_past_defects||[]).map(x=>x.defect_id).join(', ')+((eu.semantic_matches||[]).length?' · by meaning: '+eu.semantic_matches.map(m=>m.defect_id+' ('+m.similarity+')').join(', '):''));
+ tool('Diagnosis','sop_lookup',eu.sops.join(', ')||'none');
+ tool('Diagnosis','recurrence_check',eu.recurrence?`${eu.recurrence.cases.length} earlier case(s) came back`:'no recurrence');
+ if(eu.supplier_history)tool('Diagnosis','supplier_history',`${eu.supplier_history.supplier}: ${eu.supplier_history.material_issues_total} material issue(s), ${eu.supplier_history.same_batch_issues} in this batch`);
+ tool('Diagnosis','citation_check',(dg.invalid_citations_removed||[]).length?`${dg.invalid_citations_removed.length} unsupported claim(s) removed`:'all claims backed by evidence');
  done(el,`<p>${esc(r.summary)}</p>
  ${eu.recurrence?`<div class="banner">⚠ Recurring problem, occurrence #${eu.recurrence.cases.length+1}: ${esc(eu.recurrence.cases.map(c=>`${c.defect_id}, ${c.days_ago} days ago (fix: ${c.fix})`).join('; '))}. The earlier fix did not last.</div>`:''}
  ${r.likely_causes.map(c=>`<p><span class="chip ${c.likelihood==='high'?'bad':'warn'}">${esc(c.likelihood)}</span><span class="chip">${esc(c.category_6m)}</span><b>${esc(c.cause)}</b></p><ul>${c.evidence.map(e=>`<li class="small">${esc(e)}</li>`).join('')}</ul>`).join('')}
@@ -92,6 +102,8 @@ async function workOrder(partId){
  <h2>Tasks</h2><ol>${wo.tasks.map(t=>`<li>${esc(t.action)} <span class="small">(${esc(t.owner_role)}, ${esc(t.urgency)}${t.sop_ref?', '+esc(t.sop_ref):''})</span></li>`).join('')}</ol>
  <p><button class="ok" id="apBtn">Approve (supervisor)</button> <button class="bad" id="rjBtn">Reject</button> <button id="d8Btn">View 8D report</button></p><div id="d8"></div>`);
  log('Action',`${wo.wo_id} created, ${wo.priority}. Waiting for a human decision.`);
+ tool('Action','work_order',`${wo.tasks.length} tasks · priority computed in code · 8D drafted by Gemini`);
+ tool('Action','approval_gate','waiting for supervisor (AI cannot approve)');
  $('#apBtn').onclick=()=>decide(wo.wo_id,true);$('#rjBtn').onclick=()=>decide(wo.wo_id,false);
  $('#d8Btn').onclick=async()=>{$('#d8').innerHTML=`<pre>${esc(await api(`/api/work-orders/${wo.wo_id}/8d`))}</pre>`};
 }
