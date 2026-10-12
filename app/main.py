@@ -243,5 +243,47 @@ def speak(req: SpeakRequest):
         raise HTTPException(503, f"Speech is unavailable right now ({type(e).__name__})")
     return Response(content=audio, media_type="audio/mpeg")
 
+
+# ---------------- Caliper check: Gemini reads the display, code decides OK / NOT OK ----------------
+from fastapi import Form
+
+class CaliperReading(BaseModel):
+    legible: bool
+    display_text: str = Field(description="digits exactly as shown on the display, e.g. 40.53")
+    reading: float = Field(description="numeric value shown; 0 if not legible")
+    unit: Literal["mm", "inch", "unknown"]
+    confidence: int = Field(description="0-100: how sure the digits are read correctly")
+    note: str = Field(description="short note, e.g. glare, several displays, blurry")
+
+CALIPER_PROMPT = """Read the measuring instrument display (digital caliper or micrometer) in this photo.
+Report the digits EXACTLY as shown; do not round or guess. If several displays are visible, read the one
+closest to the centre of the photo and mention that in the note. If the digits are not clearly readable
+(blur, glare, cut off), set legible=false and confidence below 50. Unit: look for mm/in indicators."""
+
+@app.post("/api/measure")
+async def measure(image: UploadFile = File(...), nominal: float = Form(...), tol: float = Form(...)):
+    data = await image.read()
+    if not data or len(data) > 15_000_000:
+        raise HTTPException(413, "Photo is empty or too large.")
+    if tol <= 0:
+        raise HTTPException(400, "Tolerance must be greater than zero.")
+    mime = image.content_type or "image/jpeg"
+    try:
+        r: CaliperReading = _generate(GEMINI_MODEL, [gtypes.Part.from_bytes(data=data, mime_type=mime), CALIPER_PROMPT], CaliperReading)
+    except Exception as e:
+        raise HTTPException(503, f"Could not read the photo, please try again ({type(e).__name__})")
+    value = round(r.reading * (25.4 if r.unit == "inch" else 1.0), 3)
+    lo, hi = round(nominal - tol, 3), round(nominal + tol, 3)
+    if not r.legible or r.confidence < 60:
+        verdict, margin, near = "retake_photo", None, False
+    else:
+        ok = lo - 1e-9 <= value <= hi + 1e-9
+        verdict = "ok" if ok else "not_ok"
+        margin = round(min(value - lo, hi - value), 3)          # distance to nearest limit (negative = outside)
+        near = ok and margin <= 0.2 * tol                        # within 20% of the band edge
+    return {"verdict": verdict, "value_mm": value, "spec": {"nominal": nominal, "tol": tol, "min": lo, "max": hi},
+            "margin_mm": margin, "near_limit": near, "reading": r.model_dump(),
+            "decided_by": "code (Gemini only reads the digits)"}
+
 if STATIC.exists():
     app.mount("/", StaticFiles(directory=STATIC, html=True), name="static")

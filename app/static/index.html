@@ -38,7 +38,8 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:16px}
 <section class="card"><button class="primary" id="demoBtn" style="width:100%;margin-bottom:8px">▶ Try the demo</button>
 <button id="realBtn" style="width:100%;margin-bottom:8px">▶ Real factory part (Peenya)</button>
 <button id="micBtn" style="width:100%;margin-bottom:8px">🎙 Report a problem by voice</button>
-<button id="mapBtn" style="width:100%;margin-bottom:12px">🏭 Factory map</button>
+<button id="mapBtn" style="width:100%;margin-bottom:8px">🏭 Factory map</button>
+<button id="calBtn" style="width:100%;margin-bottom:12px">📏 Check a measurement</button>
 <h2>Parts</h2><div id="parts"></div><h2 style="margin-top:16px">Factory (live)</h2><div id="factory" class="small">Loading…</div></section>
 <section class="card"><div id="flow"><p class="small">Pick a part or press <b>Try the demo</b>. Kaarigar inspects it against golden samples, finds the root cause, and drafts a work order for a supervisor to approve.</p></div></section>
 <section class="card"><h2>Agent reasoning</h2><div id="log" class="log"><div class="small">Each step the agents take appears here.</div></div></section>
@@ -211,5 +212,38 @@ async function machineCheck(mid,m){
  }finally{window._mcBusy=false}
 }
 $('#mapBtn').onclick=showMap;
+
+const SPECS=[["Width 40.50 ± 0.05",40.50,0.05],["Width 32.90 ± 0.05",32.90,0.05],["Length 35.72 ± 0.1",35.72,0.1],
+ ["Step 9.70 ± 0.05",9.70,0.05],["Counterbore depth 1.70 ± 0.1",1.70,0.1]];
+function showMeasure(){
+ t0=performance.now();$('#log').innerHTML='';
+ $('#flow').innerHTML=`<h2>📏 Check a measurement</h2>
+ <p class="small">Photograph the caliper display. Gemini reads the digits; <b>code</b> decides OK / NOT OK against the tolerance.
+ Presets are from a real shop's quality chart (Mahadevapura).</p>
+ <p><select id="spec">${SPECS.map((s,i)=>`<option value="${i}">${esc(s[0])}</option>`).join('')}<option value="c">Custom…</option></select>
+ <input id="nom" type="number" step="0.001" value="40.50" style="width:90px"> ± <input id="tol" type="number" step="0.001" value="0.05" style="width:70px"> mm</p>
+ <p><input id="calFile" type="file" accept="image/*" capture="environment"></p>
+ <p><button class="primary" id="calGo">Check</button></p><div id="calOut"></div>`;
+ $('#spec').onchange=()=>{const v=$('#spec').value;if(v!=='c'){$('#nom').value=SPECS[v][1];$('#tol').value=SPECS[v][2]}};
+ $('#calGo').onclick=runMeasure;
+}
+async function runMeasure(){
+ const f=$('#calFile').files[0];if(!f){alert('Please choose or take a photo of the caliper display');return}
+ $('#calGo').disabled=true;$('#calOut').innerHTML='<span class="spinner"></span><span class="small">Reading the display…</span>';
+ log('Inspector','Reading the caliper display');
+ const fd=new FormData();fd.append('image',f);fd.append('nominal',$('#nom').value);fd.append('tol',$('#tol').value);
+ try{
+  const r=await fetch('/api/measure',{method:'POST',body:fd});if(!r.ok){$('#calOut').innerHTML=`<p class="small">${esc(await r.text())}</p>`;return}
+  const m=await r.json();const sp=m.spec;
+  const chip=m.verdict==='ok'?(m.near_limit?'<span class="chip warn">OK · close to limit</span>':'<span class="chip ok">OK</span>'):m.verdict==='not_ok'?'<span class="chip bad">NOT OK</span>':'<span class="chip warn">Retake photo</span>';
+  $('#calOut').innerHTML=`<div class="imgwrap" style="max-width:320px"><img src="${URL.createObjectURL(f)}"></div>
+  <p>${chip}<span class="chip">Read: ${esc(m.reading.display_text)} ${esc(m.reading.unit)}</span><span class="chip">Spec ${esc(sp.nominal)} ± ${esc(sp.tol)} (${esc(sp.min)}–${esc(sp.max)})</span></p>
+  <p class="small">${m.margin_mm!=null?`Margin to nearest limit: ${esc(m.margin_mm)} mm. `:''}Reading confidence ${esc(m.reading.confidence)}%. ${esc(m.reading.note)}</p>
+  <p class="small">Decided by ${esc(m.decided_by)}.</p>`;
+  log('Inspector',`Read ${m.reading.display_text} ${m.reading.unit} (confidence ${m.reading.confidence}%)`);
+  tool('Inspector','tolerance_check',`${m.value_mm} vs ${sp.min}–${sp.max} → ${m.verdict}${m.near_limit?' (close to limit)':''}`);
+ }finally{$('#calGo').disabled=false}
+}
+$('#calBtn').onclick=showMeasure;
 loadParts();loadFactory();showMap();
 </script></body></html>
