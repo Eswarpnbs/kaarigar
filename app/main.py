@@ -135,6 +135,26 @@ def factory():
     return f
 
 
+
+@app.get("/api/map")
+def factory_map():
+    from agents.diagnosis import MACHINES as MCH
+    from agents.tools.forecast import forecast_all, history_all
+    f = factory_overview()
+    try:
+        fa, hist = forecast_all(), history_all(24)
+    except Exception:
+        fa, hist = {}, {}
+    out = []
+    for m in f.get("machines", []):
+        mid = m["machine_id"]; fc = fa.get(mid, {})
+        out.append({**m, "name": MCH.get(mid, ("", ""))[0],
+                    "zone": fc.get("zone"), "zone_meaning": fc.get("zone_meaning"),
+                    "latest_vibration": fc.get("latest_vibration"),
+                    "hours_to_zone_d": (fc.get("hours_to_zone_d") or {}).get("expected"),
+                    "history": hist.get(mid, []), "forecast": (fc.get("forecast") or [])[:12]})
+    return {"machines": out, "data_note": "SIMULATED sensor data"}
+
 @app.get("/api/forecast/{machine_id}")
 def forecast(machine_id: str):
     from agents.tools.forecast import forecast_machine

@@ -37,7 +37,8 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:16px}
 <main>
 <section class="card"><button class="primary" id="demoBtn" style="width:100%;margin-bottom:8px">▶ Try the demo</button>
 <button id="realBtn" style="width:100%;margin-bottom:8px">▶ Real factory part (Peenya)</button>
-<button id="micBtn" style="width:100%;margin-bottom:12px">🎙 Report a problem by voice</button>
+<button id="micBtn" style="width:100%;margin-bottom:8px">🎙 Report a problem by voice</button>
+<button id="mapBtn" style="width:100%;margin-bottom:12px">🏭 Factory map</button>
 <h2>Parts</h2><div id="parts"></div><h2 style="margin-top:16px">Factory (live)</h2><div id="factory" class="small">Loading…</div></section>
 <section class="card"><div id="flow"><p class="small">Pick a part or press <b>Try the demo</b>. Kaarigar inspects it against golden samples, finds the root cause, and drafts a work order for a supervisor to approve.</p></div></section>
 <section class="card"><h2>Agent reasoning</h2><div id="log" class="log"><div class="small">Each step the agents take appears here.</div></div></section>
@@ -169,5 +170,46 @@ async function speak(text,lang){
  }finally{speaking=false;if(b)b.disabled=false}
 }
 $('#micBtn').onclick=toggleMic;
-loadParts();loadFactory();
+
+function spark(hist,fc){
+ const vals=[...hist.map(p=>p.v),...fc.map(p=>p.v)];const W=260,H=70,max=Math.max(5,...vals),n=Math.max(vals.length-1,1);
+ const X=i=>(i/n*W).toFixed(1),Y=v=>(H-(v/max)*H).toFixed(1);
+ const hp=hist.map((p,i)=>`${X(i)},${Y(p.v)}`).join(' ');
+ const last=hist.length?hist[hist.length-1].v:0;
+ const fp=fc.length?[`${X(hist.length-1)},${Y(last)}`,...fc.map((p,i)=>`${X(hist.length+i)},${Y(p.v)}`)].join(' '):'';
+ return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none" style="margin:6px 0">
+  <line x1="0" x2="${W}" y1="${Y(4.5)}" y2="${Y(4.5)}" stroke="#ef4444" stroke-dasharray="3 3"/>
+  <line x1="0" x2="${W}" y1="${Y(2.8)}" y2="${Y(2.8)}" stroke="#f59e0b" stroke-dasharray="3 3"/>
+  <polyline points="${hp}" fill="none" stroke="#60a5fa" stroke-width="2"/>
+  ${fp?`<polyline points="${fp}" fill="none" stroke="#fca5a5" stroke-width="2" stroke-dasharray="5 3"/>`:''}</svg>`}
+async function showMap(){
+ $('#flow').innerHTML='<h2>Live Factory Map</h2><div class="small">Loading machines…</div>';
+ let d;try{d=await api('/api/map')}catch(e){$('#flow').innerHTML='<p class="small">Factory map unavailable.</p>';return}
+ const col={critical:'#ef4444',warning:'#f59e0b',normal:'#22c55e'};
+ $('#flow').innerHTML=`<h2>Live Factory Map</h2>
+ <p class="small">Click a machine, pick a part, or press <b>Try the demo</b>. Blue = last 24 h vibration · dashed red = BigQuery ML forecast · dotted lines = ISO limits (2.8 restricted, 4.5 damage likely). ${esc(d.data_note)}.</p>
+ <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px">${d.machines.map(m=>`
+  <div class="card mtile" data-id="${esc(m.machine_id)}" style="cursor:pointer;border-color:${col[m.health]||'#262b36'}">
+   <div style="display:flex;justify-content:space-between;align-items:center"><b>${esc(m.machine_id)} · ${esc(m.name)}</b><span class="chip ${m.health==='critical'?'bad':m.health==='warning'?'warn':'ok'}">${esc(m.health)}</span></div>
+   <div class="small">${esc(m.latest_vibration)} mm/s · zone ${esc(m.zone)} (${esc(m.zone_meaning)}) · trend ${esc(m.trend)}</div>
+   ${spark(m.history||[],m.forecast||[])}
+   <div class="small">${m.hours_to_zone_d!=null?`<span style="color:#fca5a5">⏱ damage zone in ~${esc(m.hours_to_zone_d)} h if left running</span>`:'No danger forecast in the next 24 h'}${m.top_hint?' · hint: '+esc(m.top_hint):''}</div>
+  </div>`).join('')}</div>`;
+ document.querySelectorAll('.mtile').forEach(t=>t.onclick=()=>machineCheck(t.dataset.id,d.machines.find(x=>x.machine_id===t.dataset.id)));
+}
+async function machineCheck(mid,m){
+ if(window._mcBusy)return;window._mcBusy=true;try{
+ if(m&&m.health==='normal'){log('Kaarigar',`${mid} is healthy. No action needed.`);return}
+ t0=performance.now();$('#log').innerHTML='';
+ const el=stepEl('mc',`Machine check — ${mid} — Diagnosis agent`);log('Diagnosis',`Checking ${mid} from the Factory Map`);
+ const dg=await api('/api/diagnose-report',{method:'POST',body:{machine_id:mid,defect_type:'other',description:'Health check requested from the Factory Map: explain the current sensor trend and forecast, and what to do now.'}});
+ const rp=dg.report;
+ done(el,`<p>${esc(rp.summary)}</p>${rp.likely_causes.map(c=>`<p><span class="chip ${c.likelihood==='high'?'bad':'warn'}">${esc(c.likelihood)}</span><span class="chip">${esc(c.category_6m)}</span><b>${esc(c.cause)}</b></p>`).join('')}
+ <h2>Actions</h2><ol>${rp.recommended_actions.map(a=>`<li>${esc(a.action)} <span class="small">(${esc(a.owner_role)}, ${esc(a.urgency)})</span></li>`).join('')}</ol>
+ <p><span class="chip">Confidence ${esc(rp.confidence)}%</span>${rp.needs_human_check?'<span class="chip warn">Human should verify</span>':''}</p>`);
+ log('Diagnosis',`Root cause: ${rp.likely_causes[0]?.cause||'unclear'} (${rp.confidence}%)`);
+ }finally{window._mcBusy=false}
+}
+$('#mapBtn').onclick=showMap;
+loadParts();loadFactory();showMap();
 </script></body></html>

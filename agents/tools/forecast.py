@@ -72,6 +72,25 @@ def forecast_machine(machine_id: str, horizon: int = 24) -> dict:
     return forecast_all(horizon).get(machine_id, {"status": "error", "message": f"No forecast for {machine_id}"})
 
 
+
+def history_all(hours: int = 24) -> dict:
+    """Hourly average vibration for the last N hours of data, all machines (one query, cached 5 min)."""
+    key = ("HIST", hours)
+    if key in _cache and time.time() - _cache[key][0] < 300:
+        return _cache[key][1]
+    c = bigquery.Client(project=PROJECT)
+    out: dict = {}
+    for r in c.query(f"""
+        WITH h AS (SELECT machine_id, TIMESTAMP_TRUNC(TIMESTAMP(ts), HOUR) AS hour, AVG(vibration_mm_s) AS vib
+                   FROM {TABLE} GROUP BY machine_id, hour),
+             m AS (SELECT MAX(hour) AS mx FROM h)
+        SELECT machine_id, hour, vib FROM h, m
+        WHERE hour > TIMESTAMP_SUB(mx, INTERVAL {int(hours)} HOUR)
+        ORDER BY machine_id, hour""").result():
+        out.setdefault(r["machine_id"], []).append({"t": r["hour"].isoformat(), "v": round(float(r["vib"]), 2)})
+    _cache[key] = (time.time(), out)
+    return out
+
 if __name__ == "__main__":
     t = time.time()
     for m, f in sorted(forecast_all().items()):
