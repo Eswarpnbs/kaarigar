@@ -239,11 +239,13 @@ def diagnose_report(r: ProblemReport):
     except Exception as e:
         raise HTTPException(503, f"Diagnosis service is busy, please try again ({type(e).__name__})")
 
+LANG_NAMES = {"hi-IN": "Hindi", "kn-IN": "Kannada", "te-IN": "Telugu", "ta-IN": "Tamil", "ml-IN": "Malayalam", "mr-IN": "Marathi", "gu-IN": "Gujarati", "bn-IN": "Bengali", "en-IN": "Indian English"}
 TTS_LANGS = {"en-IN", "hi-IN", "kn-IN", "te-IN", "ta-IN", "ml-IN", "mr-IN", "gu-IN", "bn-IN"}
 
 class SpeakRequest(BaseModel):
     text: str
     language_code: str = "en-IN"
+    prelocalized: bool = False
 
 _VOICE_CACHE: dict = {}
 
@@ -266,20 +268,99 @@ def _best_voice(lang: str):
     return name
 
 
+
+# ---------------- Localization: ONE call translates on-screen text + makes a speakable version ----------------
+import hashlib as _hl
+LANG_NAMES_L = {"hi-IN": "Hindi", "kn-IN": "Kannada", "te-IN": "Telugu", "ta-IN": "Tamil", "ml-IN": "Malayalam",
+                "mr-IN": "Marathi", "gu-IN": "Gujarati", "bn-IN": "Bengali", "en-IN": "Indian English"}
+_LOC_CACHE: dict = {}
+SCRIPTS = {"hi-IN": ("Devanagari", "\u0900-\u097F"), "mr-IN": ("Devanagari", "\u0900-\u097F"),
+           "te-IN": ("Telugu", "\u0C00-\u0C7F"), "kn-IN": ("Kannada", "\u0C80-\u0CFF"),
+           "ta-IN": ("Tamil", "\u0B80-\u0BFF"), "ml-IN": ("Malayalam", "\u0D00-\u0D7F"),
+           "gu-IN": ("Gujarati", "\u0A80-\u0AFF"), "bn-IN": ("Bengali", "\u0980-\u09FF")}
+
+
+def _native_share(texts, lang) -> float:
+    """Share of texts that contain characters of the language's native script (checked in code)."""
+    import re as _r
+    rng = SCRIPTS.get(lang, (None, None))[1]
+    if not rng:
+        return 1.0
+    texts = [t for t in texts if _r.search(r"[A-Za-z]{3,}", t) or _r.search("[" + rng + "]", t)]
+    if not texts:
+        return 1.0
+    return sum(bool(_r.search("[" + rng + "]", t)) for t in texts) / len(texts)
+
+
+class LocalizeRequest(BaseModel):
+    lang: str
+    items: list[str] = []
+    spoken: str = ""
+
+
+class LocItem(BaseModel):
+    i: int
+    t: str
+
+
+class Localized(BaseModel):
+    items: list[LocItem]
+    spoken: str
+
+
+LOCALIZE_PROMPT = """Translate for supervisors and operators in a small Bengaluru machine shop into natural {name}.
+Write {name} in its native {script} script, never romanized/Latin letters (only codes and English shop words stay in English letters).
+items: each has an index i and text t; return the translation of EVERY item with its same index i. Keep codes unchanged
+(M1, WO-..., D016, SOP-01, FN-24, EN8, ISO, numbers with units like 3.5 mm/s). Keep common shop words in English where
+workers say them in English. GLOSSARY, never translate these, always write them in English letters: golden sample, defect, work order, 8D, SOP, SCAR, CNC, lathe, spindle, chuck, coolant, insert, vibration, Factory Memory, BigQuery ML, ISO zone, supplier, batch, root cause, rework, inspection.
+spoken: rewrite the 'spoken' text as natural, colloquial SPOKEN {name}: short warm sentences, no IDs or codes,
+say machine names like 'machine one', numbers and units as words, no symbols or lists. Empty if 'spoken' is empty.
+INPUT (JSON): {payload}"""
+
+
+def _speakable_en(t: str) -> str:
+    import re as _r
+    t = _r.sub(r"\b(?:WO|SC)-\d{6}-[A-Z0-9]{4}\b", "", t)
+    t = _r.sub(r"\(?\b(?:D\d{3}|L-[\w-]+)\b\)?", "", t)
+    return _r.sub(r"\s{2,}", " ", t).strip()
+
+
+@app.post("/api/localize")
+def localize(req: LocalizeRequest):
+    lang = req.lang if req.lang in LANG_NAMES_L else "en-IN"
+    items = [str(x)[:600] for x in req.items[:150]]
+    spoken = _speakable_en(req.spoken[:1500])
+    if lang == "en-IN" or (not items and not spoken):
+        return {"lang": lang, "items": items, "spoken": spoken}
+    key = _hl.sha1(json.dumps([lang, items, spoken], ensure_ascii=False).encode()).hexdigest()
+    if key in _LOC_CACHE:
+        return _LOC_CACHE[key]
+    try:
+        payload = {"items": [{"i": i, "t": t} for i, t in enumerate(items)], "spoken": spoken}
+        prompt = LOCALIZE_PROMPT.format(name=LANG_NAMES_L[lang], script=SCRIPTS.get(lang, ("native", ""))[0],
+                                        payload=json.dumps(payload, ensure_ascii=False))
+        out = _generate(os.environ.get("KAARIGAR_LOCALIZE_MODEL", "gemini-2.5-flash-lite"), [prompt], Localized)
+        if _native_share([it.t for it in out.items] + ([out.spoken] if out.spoken else []), lang) < 0.6:
+            out = _generate(GEMINI_MODEL, [prompt], Localized)          # wrong script: retry once with Flash
+        got = {it.i: it.t for it in out.items if 0 <= it.i < len(items) and it.t.strip()}
+        merged = [got.get(i, t) for i, t in enumerate(items)]          # put back by index; missing -> original
+        res = {"lang": lang, "items": merged, "spoken": out.spoken or spoken,
+               "translated": [i in got for i in range(len(items))], "validated": len(got) == len(items)}
+    except Exception:
+        res = {"lang": lang, "items": items, "spoken": spoken, "validated": False}
+    _LOC_CACHE[key] = res
+    return res
+
 @app.post("/api/speak")
 def speak(req: SpeakRequest):
+    """Speech never translates on its own: text is localized first (or arrives prelocalized), then only synthesized."""
     from google.cloud import texttospeech
     lang = req.language_code if req.language_code in TTS_LANGS else "en-IN"
-    text = req.text[:1500]
+    text = req.text[:1800]
+    if not req.prelocalized:
+        text = localize(LocalizeRequest(lang=lang, spoken=text))["spoken"] or _speakable_en(text)
+    text = text[:1600]
     try:
-        if lang != "en-IN":
-            text = gemini_client().models.generate_content(
-                model=GEMINI_MODEL,
-                contents=[f"Rewrite this for a senior machinist speaking to a new operator, in natural spoken language ({lang}). "
-                          "Short, simple sentences. Keep common shop-floor words in English as workers say them "
-                          "(machine, spindle, chuck, coolant, insert, vibration). Say numbers and units as words. "
-                          "No bullet points, symbols or brackets. Output only the spoken text:\n" + text]).text
-            text = text[:1600]
         name = _best_voice(lang)
         voice = (texttospeech.VoiceSelectionParams(language_code=lang, name=name) if name
                  else texttospeech.VoiceSelectionParams(language_code=lang))
@@ -288,7 +369,7 @@ def speak(req: SpeakRequest):
             audio_config=texttospeech.AudioConfig(audio_encoding=texttospeech.AudioEncoding.MP3)).audio_content
     except Exception as e:
         raise HTTPException(503, f"Speech is unavailable right now ({type(e).__name__})")
-    return Response(content=audio, media_type="audio/mpeg")
+    return Response(content=audio, media_type="audio/mpeg", headers={"X-Voice": name or lang})
 
 
 # ---------------- Caliper check: Gemini reads the display, code decides OK / NOT OK ----------------
@@ -443,7 +524,7 @@ from collections import defaultdict, deque
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
-LIVE_PER_IP_HOUR = int(os.environ.get("KAARIGAR_LIVE_PER_IP_HOUR", "40"))
+LIVE_PER_IP_HOUR = int(os.environ.get("KAARIGAR_LIVE_PER_IP_HOUR", "80"))
 LIVE_PER_DAY = int(os.environ.get("KAARIGAR_LIVE_PER_DAY", "600"))
 _ip_hits = defaultdict(deque)
 _day_local = {"d": "", "n": 0}
@@ -451,7 +532,7 @@ LIVE_RULES = [
     (r"^/api/inspect/([^/]+)$", "inspect"),
     (r"^/api/diagnose/([^/]+)$", "diagnose"),
     (r"^/api/diagnose-report$", None), (r"^/api/voice$", None), (r"^/api/speak$", None),
-    (r"^/api/measure$", None), (r"^/api/inspect-upload$", None), (r"^/api/teach/[^/]+$", None), (r"^/api/work-orders/[^/]+/sop-change$", None),
+    (r"^/api/measure$", None), (r"^/api/localize$", None), (r"^/api/inspect-upload$", None), (r"^/api/handover$", None), (r"^/api/teach/[^/]+$", None), (r"^/api/work-orders/[^/]+/sop-change$", None),
     (r"^/api/work-orders/[^/]+$", None),          # create work order + 8D draft
 ]
 
@@ -619,12 +700,65 @@ async def inspect_upload(golden: UploadFile = File(...), test: UploadFile = File
 
 # ---------------- Kaarigar Teaches: new-operator guide from SOPs + Factory Memory ----------------
 @app.post("/api/teach/{machine_id}")
-def teach_machine(machine_id: str):
+def teach_machine(machine_id: str, lang: str = "en-IN"):
     from agents.teach import teach
     try:
-        return teach(machine_id)
+        return teach(machine_id, LANG_NAMES_L.get(lang, ""))
     except Exception as e:
         raise HTTPException(503, f"Could not prepare the guide, please try again ({type(e).__name__})")
+
+
+# ---------------- Shift handover: facts gathered in code, Gemini only phrases, spoken in any language ----------------
+class Handover(BaseModel):
+    headline: str
+    watch_first: list[str]
+    waiting_for_you: list[str]
+    done_this_shift: list[str]
+    learned: list[str]
+    spoken_brief: str = Field(description="about 45-60 seconds when spoken; simple words; most urgent first")
+
+HANDOVER_PROMPT = """You are Kaarigar, writing the shift handover for the next shift supervisor of a small machine shop.
+Use ONLY the facts below. Most urgent first: machines close to the damage zone, then work orders waiting for a
+human decision, then fixes done and verified, then lessons learned, SOP changes and suppliers needing action.
+Be specific (machine ids, work order ids, hours). Never mention anything that is not in the facts.
+Machine sensor data is SIMULATED in this prototype. FACTS (JSON):
+"""
+
+
+@app.post("/api/handover")
+def handover(lang: str = "en-IN"):
+    def safe(c):
+        try:
+            return act.STORE.list(c)
+        except Exception:
+            return []
+    f = factory_overview()
+    try:
+        from agents.tools.forecast import forecast_all
+        fa = forecast_all()
+    except Exception:
+        fa = {}
+    facts = {
+        "machines": [{"id": m["machine_id"], "health": m["health"], "vibration_change": m.get("vibration_change"),
+                      "hint": m.get("top_hint"),
+                      "hours_to_damage_zone": (fa.get(m["machine_id"], {}).get("hours_to_zone_d") or {}).get("expected")}
+                     for m in f.get("machines", [])],
+        "work_orders": [{"id": w.get("wo_id"), "machine": w.get("machine_name"), "status": w.get("status"),
+                         "priority": w.get("priority"), "recurrence": w.get("recurrence"),
+                         "root_cause": (w.get("root_cause") or "")[:120]}
+                        for w in sorted(safe("work_orders"), key=lambda w: w.get("created_at", ""), reverse=True)[:12]],
+        "lessons_learned": [r.get("defect_id") for r in safe("factory_memory")][:10],
+        "sop_changes_approved": [f"{c.get('change_id')} {c.get('sop_id')}" for c in safe("sop_changes") if c.get("status") == "approved"][:10],
+        "suppliers_needing_action": [x["supplier"] for x in suppliers()["suppliers"] if x["rating"].startswith("C")],
+    }
+    try:
+        name = LANG_NAMES_L.get(lang, "Indian English")
+        note = "" if lang == "en-IN" else (f"\nWrite ALL fields in {name}. spoken_brief: natural colloquial spoken {name}, "
+                                            "no IDs. Keep codes unchanged in the other fields (M1, WO-..., D016).")
+        h = _generate(GEMINI_MODEL, [HANDOVER_PROMPT + json.dumps(facts, default=str) + note], Handover)
+    except Exception as e:
+        raise HTTPException(503, f"Could not prepare the handover, please try again ({type(e).__name__})")
+    return {"handover": h.model_dump(), "facts": facts}
 
 if STATIC.exists():
     app.mount("/", StaticFiles(directory=STATIC, html=True), name="static")

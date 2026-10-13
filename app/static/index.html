@@ -32,10 +32,11 @@ pre{white-space:pre-wrap;font-size:12px;background:#0b0d11;padding:10px;border-r
 .spinner{display:inline-block;width:12px;height:12px;border:2px solid var(--muted);border-top-color:transparent;border-radius:50%;animation:s 1s linear infinite;vertical-align:middle;margin-right:6px}
 @keyframes s{to{transform:rotate(360deg)}}
 code{font-size:11px;color:#fbbf24}
+.i18n-pending{visibility:hidden}
 footer{color:var(--muted);font-size:12px;text-align:center;padding:16px}
 </style></head><body>
 <header><span class="logo">Kaarigar</span><span class="tag">One photo of a good part, one phone, zero training.</span>
-<span class="badge">AI informs · humans decide</span><span class="badge">Machine data SIMULATED · past records SYNTHETIC</span><span id="authBox" class="badge"></span><select id="lang" style="margin-left:auto;background:#171a21;color:#e8eaed;border:1px solid #262b36;border-radius:6px;padding:3px 6px"><option value="en">EN</option><option value="kn">ಕನ್ನಡ</option><option value="hi">हिन्दी</option><option value="te">తెలుగు</option></select></header>
+<span class="badge">AI informs · humans decide</span><span class="badge">Machine data SIMULATED · past records SYNTHETIC</span><span id="authBox" class="badge"></span><span id="i18nBusy" class="badge" style="display:none">🌐 translating…</span><select id="lang" style="margin-left:auto;background:#171a21;color:#e8eaed;border:1px solid #262b36;border-radius:6px;padding:3px 6px"><option value="en">EN</option><option value="kn">ಕನ್ನಡ</option><option value="hi">हिन्दी</option><option value="te">తెలుగు</option></select></header>
 <main>
 <section class="card"><button class="primary" id="demoBtn" style="width:100%;margin-bottom:8px">▶ Try the demo</button>
 <button id="realBtn" style="width:100%;margin-bottom:8px">▶ Real factory part (Peenya)</button>
@@ -44,7 +45,8 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:16px}
 <button id="calBtn" style="width:100%;margin-bottom:8px">📏 Check a measurement</button>
 <button id="supBtn" style="width:100%;margin-bottom:8px">🏷️ Supplier scorecard</button>
 <button id="ownBtn" class="primary" style="width:100%;margin-bottom:8px">📷 Inspect your own part</button>
-<button id="teachBtn" style="width:100%;margin-bottom:12px">🎓 Kaarigar Teaches (new operator)</button>
+<button id="teachBtn" style="width:100%;margin-bottom:8px">🎓 Kaarigar Teaches (new operator)</button>
+<button id="hoBtn" style="width:100%;margin-bottom:12px">🌅 Shift handover</button>
 <h2>Parts</h2><div id="parts"></div><h2 style="margin-top:16px">Factory (live)</h2><div id="factory" class="small">Loading…</div></section>
 <section class="card"><div id="flow"><p class="small">Pick a part or press <b>Try the demo</b>. Kaarigar inspects it against golden samples, finds the root cause, and drafts a work order for a supervisor to approve.</p></div></section>
 <section class="card"><h2>Agent reasoning</h2><div id="log" class="log"><div class="small">Each step the agents take appears here.</div></div></section>
@@ -173,18 +175,29 @@ async function voiceFlow(blob){
  <button id="spkBtn">🔊 Listen in ${esc(v.language)}</button>`);
  log('Diagnosis',`Root cause: ${rp.likely_causes[0]?.cause||'unclear'} (${rp.confidence}%)`);
  $('#spkBtn').onclick=()=>speak(rp.summary+' '+(rp.recommended_actions[0]?.action||''),v.language_code);
+ prefetchSpeech(rp.summary+' '+(rp.recommended_actions[0]?.action||''),v.language_code);
 }
-let player=null,speaking=false;
-async function speak(text,lang){
- if(speaking)return;
+const _aud={};
+const LANGCODE={en:'en-IN',kn:'kn-IN',hi:'hi-IN',te:'te-IN'};
+let LANG=(()=>{try{return localStorage.getItem('kLang')||'en'}catch(e){return 'en'}})();
+function uiLangCode(){return LANGCODE[LANG]||'en-IN'}
+function audioFor(text,lang){lang=lang||uiLangCode();const k=lang+'|'+text;
+ if(!_aud[k])_aud[k]=(async()=>{
+  let spoken=text,pre=false;
+  if(lang!=='en-IN'){const r=await api('/api/localize',{method:'POST',body:{lang,spoken:text}});spoken=r.spoken||text;pre=true}
+  const r=await fetch('/api/speak',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:spoken,language_code:lang,prelocalized:pre})});
+  if(!r.ok)throw new Error('speech');return{url:URL.createObjectURL(await r.blob()),voice:r.headers.get('X-Voice')}
+ })().catch(e=>{delete _aud[k];throw e});
+ return _aud[k]}
+function prefetchSpeech(text,lang){audioFor(text,lang).catch(()=>{})}
+let player=null;
+async function speak(text,lang){lang=lang||uiLangCode();
  if(player&&!player.paused){player.pause();player=null;log('Kaarigar','Stopped speaking');return}
- speaking=true;const b=$('#spkBtn');if(b)b.disabled=true;
- log('Kaarigar',`Speaking in ${lang}`);
- try{
-  const r=await fetch('/api/speak',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,language_code:lang})});
-  if(!r.ok){log('Error','Speech unavailable');return}
-  player=new Audio(URL.createObjectURL(await r.blob()));player.onended=()=>{player=null};player.play();
- }finally{speaking=false;if(b)b.disabled=false}
+ const b=$('#spkBtn');if(b){if(b.disabled)return;b.disabled=true;b.dataset.l=b.textContent;b.textContent='⏳ …'}
+ try{const a=await audioFor(text,lang);log('Kaarigar',`Speaking in ${lang}${a.voice?' · voice '+a.voice:''}`);
+  player=new Audio(a.url);player.onended=()=>{player=null};await player.play()}
+ catch(e){log('Error','Speech is unavailable right now')}
+ finally{if(b){b.disabled=false;b.textContent=b.dataset.l||'🔊 Listen'}}
 }
 $('#micBtn').onclick=toggleMic;
 
@@ -338,6 +351,7 @@ const I18N={
  calBtn:{en:'📏 Check a measurement',kn:'📏 ಅಳತೆ ಪರಿಶೀಲಿಸಿ',hi:'📏 माप जांचें',te:'📏 కొలత తనిఖీ చేయండి'},
  ownBtn:{en:'📷 Inspect your own part',kn:'📷 ನಿಮ್ಮ ಭಾಗವನ್ನು ಪರಿಶೀಲಿಸಿ',hi:'📷 अपना पार्ट जांचें',te:'📷 మీ భాగాన్ని తనిఖీ చేయండి'},
  teachBtn:{en:'🎓 Kaarigar Teaches (new operator)',kn:'🎓 ಕಾರಿಗರ್ ಕಲಿಸುತ್ತದೆ (ಹೊಸ ಆಪರೇಟರ್)',hi:'🎓 कारीगर सिखाता है (नया ऑपरेटर)',te:'🎓 కారిగర్ నేర్పిస్తుంది (కొత్త ఆపరేటర్)'},
+ hoBtn:{en:'🌅 Shift handover',kn:'🌅 ಶಿಫ್ಟ್ ಹಸ್ತಾಂತರ',hi:'🌅 शिफ्ट हैंडओवर',te:'🌅 షిఫ్ట్ హ్యాండోవర్'},
  supBtn:{en:'🏷️ Supplier scorecard',kn:'🏷️ ಪೂರೈಕೆದಾರರ ಅಂಕಪಟ್ಟಿ',hi:'🏷️ सप्लायर स्कोरकार्ड',te:'🏷️ సరఫరాదారుల స్కోర్‌కార్డ్'},
  parts:{en:'Parts',kn:'ಭಾಗಗಳು',hi:'पार्ट्स',te:'భాగాలు'},
  factory:{en:'Factory (live)',kn:'ಕಾರ್ಖಾನೆ (ಲೈವ್)',hi:'फ़ैक्टरी (लाइव)',te:'ఫ్యాక్టరీ (లైవ్)'},
@@ -347,10 +361,10 @@ function applyLang(l){
  try{localStorage.setItem('kLang',l)}catch(e){}
  const t=k=>(I18N[k]&&(I18N[k][l]||I18N[k].en))||'';
  const tag=document.querySelector('header .tag');if(tag)tag.textContent=t('tagline');
- ['demoBtn','realBtn','micBtn','mapBtn','calBtn','supBtn','ownBtn','teachBtn'].forEach(id=>{const b=document.getElementById(id);if(b&&!(id==='micBtn'&&rec&&rec.state==='recording'))b.textContent=t(id)});
+ ['demoBtn','realBtn','micBtn','mapBtn','calBtn','supBtn','ownBtn','teachBtn','hoBtn'].forEach(id=>{const b=document.getElementById(id);if(b&&!(id==='micBtn'&&rec&&rec.state==='recording'))b.textContent=t(id)});
  [['parts','parts'],['factory','factory'],['log','log']].forEach(([id,k])=>{const el=document.getElementById(id);if(el&&el.previousElementSibling&&el.previousElementSibling.tagName==='H2')el.previousElementSibling.textContent=t(k)});
 }
-(()=>{let l='en';try{l=localStorage.getItem('kLang')||'en'}catch(e){};$('#lang').value=l;$('#lang').onchange=()=>applyLang($('#lang').value);applyLang(l)})();
+
 
 function showOwn(){
  t0=performance.now();$('#log').innerHTML='';
@@ -404,15 +418,14 @@ function showTeach(){
  <p class="small">A short guide for a new operator, written only from this shop's SOPs and past defects (Factory Memory).</p>
  <p><select id="tM"><option value="M1">M1 · CNC Lathe 1</option><option value="M2">M2 · CNC Lathe 2</option><option value="M3">M3 · Gear Hobbing</option>
  <option value="M4">M4 · Shaping</option><option value="M5">M5 · Band Saw</option><option value="IN">Incoming material check</option></select>
- <select id="tL"><option value="en-IN">English</option><option value="kn-IN">ಕನ್ನಡ</option><option value="hi-IN">हिन्दी</option><option value="te-IN">తెలుగు</option></select>
- <button class="primary" id="tGo">Prepare guide</button></p><div id="tOut"></div>`;
+  <button class="primary" id="tGo">Prepare guide</button></p><div id="tOut" data-noai></div>`;
  $('#tGo').onclick=runTeach;
 }
 async function runTeach(){
  $('#tGo').disabled=true;$('#tOut').innerHTML='<span class="spinner"></span><span class="small">Preparing the guide…</span>';
  log('Kaarigar','Teaching: reading SOPs and this machine\'s past defects');
  try{
-  const d=await api(`/api/teach/${$('#tM').value}`,{method:'POST'});
+  const d=await api(`/api/teach/${$('#tM').value}?lang=${uiLangCode()}`,{method:'POST'});
   if(d.status!=='success'){$('#tOut').innerHTML=`<p class="small">${esc(d.message||'Could not prepare the guide')}</p>`;return}
   const L=d.lesson,li=a=>`<ul>${a.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`;
   $('#tOut').innerHTML=`<h2>${esc(L.title)}</h2>
@@ -422,15 +435,157 @@ async function runTeach(){
   <p><b>⚠️ Mistakes made here before</b></p>${li(L.common_mistakes)}
   <div class="banner">🛑 ${esc(L.stop_and_call)}</div>
   <p class="small">Sources: ${esc(d.sources.sops.join(', '))} · past defects ${esc(d.sources.past_defects.join(', ')||'none')}${d.unsupported_points_removed?` · ${d.unsupported_points_removed} unsupported point(s) removed`:''}</p>
-  <button id="tSpk">🔊 Listen</button>`;
+  <button id="spkBtn">🔊 Listen</button>`;
   tool('Kaarigar','teach',`${d.machine_id}: built from ${d.sources.sops.length} SOPs + ${d.sources.past_defects.length} past defects (citations checked in code)`);
   const text=[L.title,'A good part:',...L.good_part_looks_like,'Before you start:',...L.check_before_start,'While it runs:',...L.watch_during_run,L.stop_and_call].join('. ');
-  $('#tSpk').onclick=()=>speak(text,$('#tL').value);
+  $('#spkBtn').onclick=()=>speak(text,uiLangCode());prefetchSpeech(text,uiLangCode());
  }catch(e){$('#tOut').innerHTML='<p class="small">The guide service is busy right now, please try again.</p>'}
  finally{$('#tGo').disabled=false}
 }
 $('#teachBtn').onclick=showTeach;
+
+function showHandover(){
+ t0=performance.now();$('#log').innerHTML='';
+ $('#flow').innerHTML=`<h2>🌅 Shift handover</h2>
+ <p class="small">Kaarigar briefs the next shift: facts are gathered in code from machines, forecasts, work orders and Factory Memory; Gemini only phrases them.</p>
+ <p> <button class="primary" id="hoGo">Prepare handover</button></p><div id="hoOut" data-noai></div>`;
+ $('#hoGo').onclick=runHandover;
+}
+async function runHandover(){
+ $('#hoGo').disabled=true;$('#hoOut').innerHTML='<span class="spinner"></span><span class="small">Gathering the shift\'s facts…</span>';
+ log('Kaarigar','Handover: reading machines, forecasts, work orders and Factory Memory');
+ try{
+  const d=await api('/api/handover?lang='+uiLangCode(),{method:'POST'});const H=d.handover,li=a=>a.length?`<ul>${a.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'<p class="small">Nothing.</p>';
+  $('#hoOut').innerHTML=`<h2>${esc(H.headline)}</h2>
+  <p><b>🔴 Watch first</b></p>${li(H.watch_first)}<p><b>⏳ Waiting for you</b></p>${li(H.waiting_for_you)}
+  <p><b>✅ Done this shift</b></p>${li(H.done_this_shift)}<p><b>🧠 Learned</b></p>${li(H.learned)}
+  <p><button id="spkBtn">🔊 Listen</button></p>
+  <details><summary class="small">Facts used (gathered in code)</summary><pre>${esc(JSON.stringify(d.facts,null,1))}</pre></details>`;
+  tool('Kaarigar','handover',`${d.facts.machines.length} machines · ${d.facts.work_orders.length} work orders · ${d.facts.lessons_learned.length} lessons (facts in code)`);
+  $('#spkBtn').onclick=()=>speak(H.spoken_brief,uiLangCode());prefetchSpeech(H.spoken_brief,uiLangCode());
+ }catch(e){$('#hoOut').innerHTML=`<p class="small">Could not prepare the handover: ${esc(String(e.message||e).slice(0,200))}</p>`}
+ finally{$('#hoGo').disabled=false}
+}
+$('#hoBtn').onclick=showHandover;
+
+const UI_DICT={
+'One photo of a good part, one phone, zero training.':{kn:'ಒಳ್ಳೆಯ ಭಾಗದ ಒಂದು ಫೋಟೋ, ಒಂದು ಫೋನ್, ತರಬೇತಿ ಬೇಕಿಲ್ಲ.',hi:'अच्छे पार्ट की एक फ़ोटो, एक फ़ोन, कोई ट्रेनिंग नहीं।',te:'మంచి భాగం ఒక ఫోటో, ఒక ఫోన్, శిక్షణ అవసరం లేదు.'},
+'AI informs · humans decide':{kn:'AI ಸಲಹೆ ನೀಡುತ್ತದೆ · ಮನುಷ್ಯರು ನಿರ್ಧರಿಸುತ್ತಾರೆ',hi:'AI सलाह देता है · फ़ैसला इंसान करते हैं',te:'AI సూచిస్తుంది · నిర్ణయం మనుషులదే'},
+'Machine data SIMULATED · past records SYNTHETIC':{kn:'ಯಂತ್ರ ಡೇಟಾ SIMULATED · ಹಳೆಯ ದಾಖಲೆಗಳು SYNTHETIC ಮಾದರಿ',hi:'मशीन डेटा SIMULATED · पुराने रिकॉर्ड SYNTHETIC नमूना',te:'మెషిన్ డేటా SIMULATED · పాత రికార్డులు SYNTHETIC నమూనా'},
+'▶ Try the demo':{kn:'▶ ಡೆಮೊ ನೋಡಿ',hi:'▶ डेमो देखें',te:'▶ డెమో చూడండి'},
+'▶ Real factory part (Peenya)':{kn:'▶ ನಿಜವಾದ ಕಾರ್ಖಾನೆ ಭಾಗ (ಪೀಣ್ಯ)',hi:'▶ असली फ़ैक्टरी पार्ट (पीण्या)',te:'▶ నిజమైన ఫ్యాక్టరీ భాగం (పీణ్య)'},
+'🎙 Report a problem by voice':{kn:'🎙 ಧ್ವನಿಯಲ್ಲಿ ಸಮಸ್ಯೆ ತಿಳಿಸಿ',hi:'🎙 आवाज़ से समस्या बताएं',te:'🎙 మాట్లాడి సమస్య చెప్పండి'},
+'🏭 Factory map':{kn:'🏭 ಕಾರ್ಖಾನೆ ನಕ್ಷೆ',hi:'🏭 फ़ैक्टरी मैप',te:'🏭 ఫ్యాక్టరీ మ్యాప్'},
+'📏 Check a measurement':{kn:'📏 ಅಳತೆ ಪರಿಶೀಲಿಸಿ',hi:'📏 माप जांचें',te:'📏 కొలత తనిఖీ చేయండి'},
+'🏷️ Supplier scorecard':{kn:'🏷️ ಪೂರೈಕೆದಾರರ ಅಂಕಪಟ್ಟಿ',hi:'🏷️ सप्लायर स्कोरकार्ड',te:'🏷️ సరఫరాదారుల స్కోర్‌కార్డ్'},
+'📷 Inspect your own part':{kn:'📷 ನಿಮ್ಮ ಭಾಗವನ್ನು ಪರಿಶೀಲಿಸಿ',hi:'📷 अपना पार्ट जांचें',te:'📷 మీ భాగాన్ని తనిఖీ చేయండి'},
+'🎓 Kaarigar Teaches (new operator)':{kn:'🎓 ಕಾರಿಗರ್ ಕಲಿಸುತ್ತದೆ (ಹೊಸ ಆಪರೇಟರ್)',hi:'🎓 कारीगर सिखाता है (नया ऑपरेटर)',te:'🎓 కారిగర్ నేర్పిస్తుంది (కొత్త ఆపరేటర్)'},
+'🌅 Shift handover':{kn:'🌅 ಶಿಫ್ಟ್ ಹಸ್ತಾಂತರ',hi:'🌅 शिफ्ट हैंडओवर',te:'🌅 షిఫ్ట్ హ్యాండోవర్'},
+'Parts':{kn:'ಭಾಗಗಳು',hi:'पार्ट्स',te:'భాగాలు'},
+'Factory (live)':{kn:'ಕಾರ್ಖಾನೆ (ಲೈವ್)',hi:'फ़ैक्टरी (लाइव)',te:'ఫ్యాక్టరీ (లైవ్)'},
+'Agent reasoning':{kn:'ಏಜೆಂಟ್ ತರ್ಕ',hi:'एजेंट की सोच',te:'ఏజెంట్ ఆలోచన'},
+'Live Factory Map':{kn:'ಲೈವ್ ಕಾರ್ಖಾನೆ ನಕ್ಷೆ',hi:'लाइव फ़ैक्टरी मैप',te:'లైవ్ ఫ్యాక్టరీ మ్యాప్'},
+'1 · Detect — Inspector agent':{kn:'1 · ಪತ್ತೆ — ಇನ್ಸ್‌ಪೆಕ್ಟರ್ ಏಜೆಂಟ್',hi:'1 · पहचान — इंस्पेक्टर एजेंट',te:'1 · గుర్తింపు — ఇన్‌స్పెక్టర్ ఏజెంట్'},
+'2 · Diagnose — Diagnosis agent':{kn:'2 · ಕಾರಣ — ಡಯಾಗ್ನೋಸಿಸ್ ಏಜೆಂಟ್',hi:'2 · कारण — डायग्नोसिस एजेंट',te:'2 · కారణం — డయాగ్నోసిస్ ఏజెంట్'},
+'3 · Act — Action agent':{kn:'3 · ಕ್ರಮ — ಆಕ್ಷನ್ ಏಜೆಂಟ್',hi:'3 · कार्रवाई — एक्शन एजेंट',te:'3 · చర్య — యాక్షన్ ఏజెంట్'},
+'4 · Verify':{kn:'4 · ಪರಿಶೀಲನೆ',hi:'4 · जांच',te:'4 · ధృవీకరణ'},
+'5 Whys':{kn:'5 ಏಕೆಗಳು',hi:'5 क्यों',te:'5 ఎందుకులు'},
+'Containment':{kn:'ತಕ್ಷಣದ ತಡೆ (Containment)',hi:'तुरंत रोकथाम (Containment)',te:'తక్షణ నియంత్రణ (Containment)'},
+'Tasks':{kn:'ಕೆಲಸಗಳು',hi:'काम',te:'పనులు'},
+'Actions':{kn:'ಕ್ರಮಗಳು',hi:'कदम',te:'చర్యలు'},
+'Defect found':{kn:'ದೋಷ ಕಂಡುಬಂದಿದೆ',hi:'खराबी मिली',te:'లోపం కనిపించింది'},
+'No defect':{kn:'ದೋಷವಿಲ್ಲ',hi:'कोई खराबी नहीं',te:'లోపం లేదు'},
+'Pending supervisor approval':{kn:'ಸೂಪರ್‌ವೈಸರ್ ಅನುಮೋದನೆ ಬಾಕಿ',hi:'सुपरवाइज़र की मंज़ूरी बाकी',te:'సూపర్‌వైజర్ ఆమోదం పెండింగ్'},
+'Approved by supervisor':{kn:'ಸೂಪರ್‌ವೈಸರ್ ಅನುಮೋದಿಸಿದ್ದಾರೆ',hi:'सुपरवाइज़र ने मंज़ूर किया',te:'సూపర్‌వైజర్ ఆమోదించారు'},
+'Human should verify':{kn:'ಮನುಷ್ಯರು ಪರಿಶೀಲಿಸಬೇಕು',hi:'इंसान जांच करे',te:'మనిషి తనిఖీ చేయాలి'},
+'normal':{kn:'ಸಾಮಾನ್ಯ',hi:'सामान्य',te:'సాధారణం'},
+'critical':{kn:'ಗಂಭೀರ',hi:'गंभीर',te:'తీవ్రం'},
+'Create work order + 8D':{kn:'ವರ್ಕ್ ಆರ್ಡರ್ + 8D ರಚಿಸಿ',hi:'वर्क ऑर्डर + 8D बनाएं',te:'వర్క్ ఆర్డర్ + 8D సృష్టించండి'},
+'Approve (supervisor)':{kn:'ಅನುಮೋದಿಸಿ (ಸೂಪರ್‌ವೈಸರ್)',hi:'मंज़ूर करें (सुपरवाइज़र)',te:'ఆమోదించండి (సూపర్‌వైజర్)'},
+'Reject':{kn:'ತಿರಸ್ಕರಿಸಿ',hi:'अस्वीकार करें',te:'తిరస్కరించండి'},
+'View 8D report':{kn:'8D ವರದಿ ನೋಡಿ',hi:'8D रिपोर्ट देखें',te:'8D రిపోర్ట్ చూడండి'},
+'Run re-check':{kn:'ಮರುಪರಿಶೀಲನೆ ಮಾಡಿ',hi:'दोबारा जांचें',te:'మళ్ళీ తనిఖీ చేయండి'},
+'Find root cause':{kn:'ಮೂಲ ಕಾರಣ ಹುಡುಕಿ',hi:'मूल कारण खोजें',te:'మూల కారణం కనుగొనండి'},
+'Prepare guide':{kn:'ಮಾರ್ಗದರ್ಶಿ ತಯಾರಿಸಿ',hi:'गाइड तैयार करें',te:'గైడ్ సిద్ధం చేయండి'},
+'Prepare handover':{kn:'ಹಸ್ತಾಂತರ ತಯಾರಿಸಿ',hi:'हैंडओवर तैयार करें',te:'హ్యాండోవర్ సిద్ధం చేయండి'},
+'Inspect':{kn:'ಪರಿಶೀಲಿಸಿ',hi:'जांचें',te:'తనిఖీ చేయండి'},
+'Check':{kn:'ಪರಿಶೀಲಿಸಿ',hi:'जांचें',te:'తనిఖీ చేయండి'},
+'🔊 Listen':{kn:'🔊 ಕೇಳಿ',hi:'🔊 सुनें',te:'🔊 వినండి'},
+'Working…':{kn:'ಕೆಲಸ ನಡೆಯುತ್ತಿದೆ…',hi:'काम चल रहा है…',te:'పని జరుగుతోంది…'},
+'Inspector':{kn:'Inspector',hi:'Inspector',te:'Inspector'},'Diagnosis':{kn:'Diagnosis',hi:'Diagnosis',te:'Diagnosis'},
+'Action':{kn:'Action',hi:'Action',te:'Action'},'Kaarigar':{kn:'Kaarigar',hi:'Kaarigar',te:'Kaarigar'},'Supervisor':{kn:'Supervisor',hi:'Supervisor',te:'Supervisor'},
+'Comparing the photo with golden samples':{kn:'golden sample ಜೊತೆ ಫೋಟೋ ಹೋಲಿಸಲಾಗುತ್ತಿದೆ',hi:'golden sample से फ़ोटो की तुलना हो रही है',te:'golden sample తో ఫోటో పోలుస్తోంది'},
+'Gathering machine data, Factory Memory and SOPs':{kn:'ಯಂತ್ರ ಡೇಟಾ, Factory Memory ಮತ್ತು SOP ಸಂಗ್ರಹಿಸಲಾಗುತ್ತಿದೆ',hi:'मशीन डेटा, Factory Memory और SOP जुटाए जा रहे हैं',te:'మెషిన్ డేటా, Factory Memory, SOPలు సేకరిస్తోంది'},
+'Drafting work order and 8D report':{kn:'work order ಮತ್ತು 8D ವರದಿ ತಯಾರಾಗುತ್ತಿದೆ',hi:'work order और 8D रिपोर्ट तैयार हो रही है',te:'work order, 8D రిపోర్ట్ తయారవుతోంది'},
+'Part accepted. Nothing to diagnose.':{kn:'ಭಾಗ ಸರಿಯಾಗಿದೆ. ಪರಿಶೀಲಿಸಲು ಏನೂ ಇಲ್ಲ.',hi:'पार्ट ठीक है। जांचने को कुछ नहीं।',te:'భాగం సరిగ్గా ఉంది. పరిశీలించాల్సింది ఏమీ లేదు.'},
+'Understanding the voice report':{kn:'ಧ್ವನಿ ವರದಿ ಅರ್ಥಮಾಡಿಕೊಳ್ಳಲಾಗುತ್ತಿದೆ',hi:'आवाज़ वाली रिपोर्ट समझी जा रही है',te:'వాయిస్ రిపోర్ట్ అర్థం చేసుకుంటోంది'},
+'Supplier scorecard computed from Factory Memory':{kn:'Factory Memory ಯಿಂದ supplier ಅಂಕಪಟ್ಟಿ ತಯಾರಾಗಿದೆ',hi:'Factory Memory से supplier स्कोरकार्ड बना',te:'Factory Memory నుండి supplier స్కోర్‌కార్డ్ తయారైంది'},
+'box to words computed in code':{kn:'ಸ್ಥಳವನ್ನು ಕೋಡ್ ಲೆಕ್ಕಹಾಕಿದೆ',hi:'जगह कोड ने तय की',te:'స్థానాన్ని కోడ్ లెక్కించింది'},
+'all claims backed by evidence':{kn:'ಎಲ್ಲಾ ಹೇಳಿಕೆಗಳಿಗೆ ಆಧಾರವಿದೆ',hi:'हर बात का सबूत है',te:'ప్రతి మాటకు ఆధారం ఉంది'},
+'waiting for supervisor (AI cannot approve)':{kn:'ಸೂಪರ್‌ವೈಸರ್‌ಗಾಗಿ ಕಾಯುತ್ತಿದೆ (AI ಅನುಮೋದಿಸಲು ಸಾಧ್ಯವಿಲ್ಲ)',hi:'सुपरवाइज़र का इंतज़ार (AI मंज़ूरी नहीं दे सकता)',te:'సూపర్‌వైజర్ కోసం ఎదురుచూస్తోంది (AI ఆమోదించలేదు)'},
+'Loading machines…':{kn:'ಯಂತ್ರಗಳು ಲೋಡ್ ಆಗುತ್ತಿವೆ…',hi:'मशीनें लोड हो रही हैं…',te:'మెషిన్లు లోడ్ అవుతున్నాయి…'},
+'✅ A good part looks like':{kn:'✅ ಒಳ್ಳೆಯ ಭಾಗ ಹೀಗಿರುತ್ತದೆ',hi:'✅ अच्छा पार्ट ऐसा दिखता है',te:'✅ మంచి భాగం ఇలా ఉంటుంది'},
+'🔧 Check before you start':{kn:'🔧 ಶುರು ಮಾಡುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ',hi:'🔧 शुरू करने से पहले जांचें',te:'🔧 మొదలు పెట్టే ముందు చూడండి'},
+'👂 Watch while it runs':{kn:'👂 ಓಡುತ್ತಿರುವಾಗ ಗಮನಿಸಿ',hi:'👂 चलते समय ध्यान दें',te:'👂 నడుస్తున్నప్పుడు గమనించండి'},
+'⚠️ Mistakes made here before':{kn:'⚠️ ಇಲ್ಲಿ ಹಿಂದೆ ಆದ ತಪ್ಪುಗಳು',hi:'⚠️ यहाँ पहले हुई गलतियाँ',te:'⚠️ ఇక్కడ ముందు జరిగిన తప్పులు'},
+'🔴 Watch first':{kn:'🔴 ಮೊದಲು ಗಮನಿಸಿ',hi:'🔴 पहले ध्यान दें',te:'🔴 ముందుగా చూడాల్సినవి'},
+'⏳ Waiting for you':{kn:'⏳ ನಿಮಗಾಗಿ ಕಾಯುತ್ತಿವೆ',hi:'⏳ आपका इंतज़ार',te:'⏳ మీ కోసం ఎదురుచూస్తున్నవి'},
+'✅ Done this shift':{kn:'✅ ಈ ಶಿಫ್ಟ್‌ನಲ್ಲಿ ಮುಗಿದದ್ದು',hi:'✅ इस शिफ्ट में पूरा हुआ',te:'✅ ఈ షిఫ్ట్‌లో పూర్తైనవి'},
+'🧠 Learned':{kn:'🧠 ಕಲಿತದ್ದು',hi:'🧠 सीखा',te:'🧠 నేర్చుకున్నవి'},
+'Each step the agents take appears here.':{kn:'ಏಜೆಂಟ್‌ಗಳ ಪ್ರತಿ ಹೆಜ್ಜೆ ಇಲ್ಲಿ ಕಾಣುತ್ತದೆ.',hi:'एजेंट्स का हर कदम यहाँ दिखेगा।',te:'ఏజెంట్ల ప్రతి అడుగు ఇక్కడ కనిపిస్తుంది.'}
+};
+const _tr={kn:new Map(),hi:new Map(),te:new Map()};
+try{const st=JSON.parse(localStorage.getItem('kTr')||'{}');for(const l in st)if(_tr[l])for(const [k,v] of Object.entries(st[l]))_tr[l].set(k,v)}catch(e){}
+function saveTr(){try{localStorage.setItem('kTr',JSON.stringify(Object.fromEntries(Object.entries(_tr).map(([l,m])=>[l,Object.fromEntries([...m].slice(-1500))]))))}catch(e){}}
+const CODE_ONLY=/^[\s\d.,:;%+\-–—·\/()×°#₹=<>|~*A-Z_]*$/;
+function isCode(k){return CODE_ONLY.test(k)||/^[A-Za-z0-9]+(?:_[A-Za-z0-9]+)+$/.test(k)||/^[A-Z]+-[\w-]+$/.test(k)}
+function textNodes(root){const out=[];if(!root)return out;
+ const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>{const pe=n.parentElement;
+  if(!pe||['SCRIPT','STYLE','CODE','PRE','OPTION','SELECT','TEXTAREA'].includes(pe.tagName)||pe.closest('.logo'))return NodeFilter.FILTER_REJECT;
+  return n.nodeValue.trim().length>1?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT}});
+ while(w.nextNode())out.push(w.currentNode);return out}
+let _i18nBusy=false,_i18nAgain=false;
+async function translatePage(){
+ if(_i18nBusy){_i18nAgain=true;return}_i18nBusy=true;
+ try{
+  const nodes=[document.querySelector('header'),document.querySelector('main')].flatMap(textNodes);const need=[];
+  for(const n of nodes){
+   if(n._en===undefined)n._en=n.nodeValue;const en=n._en,key=en.trim();
+   if(LANG==='en'){if(n.nodeValue!==en)n.nodeValue=en;continue}
+   const unhide=()=>{n.parentElement&&n.parentElement.classList.remove('i18n-pending')};
+   const d=UI_DICT[key]&&UI_DICT[key][LANG];if(d){n.nodeValue=en.replace(key,d);unhide();continue}
+   const c=_tr[LANG].get(key);if(c){n.nodeValue=en.replace(key,c);unhide();continue}
+   if(isCode(key)||(n.parentElement&&n.parentElement.closest('[data-noai]'))){if(n.nodeValue!==en)n.nodeValue=en;unhide();continue}
+   need.push(n)}
+  const uniq=[...new Set(need.map(n=>n._en.trim()))].slice(0,150);
+  if(uniq.length){const ind=$('#i18nBusy');if(ind)ind.style.display='inline';const want=LANG;
+   try{const chunks=[];for(let i=0;i<uniq.length;i+=12)chunks.push(uniq.slice(i,i+12));
+    const rs=await Promise.all(chunks.map(c=>api('/api/localize',{method:'POST',body:{lang:LANGCODE[want],items:c}}).catch(()=>null)));
+    rs.forEach((r,ci)=>{if(!r)return;chunks[ci].forEach((k,i)=>{if(r.translated?r.translated[i]:(r.items[i]&&r.items[i]!==k))_tr[want].set(k,r.items[i])})});
+    if(LANG===want)for(const n of need){const k=n._en.trim(),c=_tr[want].get(k);if(c&&n.isConnected)n.nodeValue=n._en.replace(k,c)}
+    saveTr();
+   }catch(e){}
+   for(const n of need)n.parentElement&&n.parentElement.classList.remove('i18n-pending');
+   if(ind)ind.style.display='none'}
+ }finally{_i18nBusy=false;if(_i18nAgain){_i18nAgain=false;setTimeout(translatePage,60)}}
+}
+let _i18nT=null;
+function prepNode(n){
+ const pe=n.parentElement;if(!pe||['SCRIPT','STYLE','CODE','PRE','OPTION','SELECT','TEXTAREA'].includes(pe.tagName)||pe.closest('.logo'))return;
+ if(n._en===undefined)n._en=n.nodeValue;const key=n._en.trim();if(key.length<2)return;
+ const d=UI_DICT[key]&&UI_DICT[key][LANG];if(d){n.nodeValue=n._en.replace(key,d);return}
+ const c=_tr[LANG].get(key);if(c){n.nodeValue=n._en.replace(key,c);return}
+ if(isCode(key)||pe.closest('[data-noai]'))return;
+ pe.classList.add('i18n-pending');
+ clearTimeout(window._i18nSafety);window._i18nSafety=setTimeout(()=>document.querySelectorAll('.i18n-pending').forEach(e=>e.classList.remove('i18n-pending')),12000)}
+new MutationObserver(ms=>{if(LANG==='en')return;
+ for(const m of ms)for(const a of m.addedNodes){if(a.nodeType===3)prepNode(a);else if(a.nodeType===1)textNodes(a).forEach(prepNode)}
+ clearTimeout(_i18nT);_i18nT=setTimeout(translatePage,80)})
+ .observe(document.querySelector('main'),{childList:true,subtree:true});
+function setLang(l){LANG=l;try{localStorage.setItem('kLang',l)}catch(e){};$('#lang').value=l;translatePage()}
+$('#lang').value=LANG;$('#lang').onchange=()=>setLang($('#lang').value);
 loadParts();loadFactory();showMap();
+setTimeout(translatePage,300);
 if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
 </script><script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";

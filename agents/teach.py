@@ -32,7 +32,7 @@ SOPs: {sops}
 PAST DEFECTS ON THIS MACHINE: {past}"""
 
 
-def teach(machine_id: str) -> dict:
+def teach(machine_id: str, lang_name: str = "") -> dict:
     if machine_id not in MACHINES:
         return {"status": "error", "message": f"Unknown machine {machine_id}"}
     name = MACHINES[machine_id][0]
@@ -40,7 +40,9 @@ def teach(machine_id: str) -> dict:
             for r in _past() if r.get("machine_id") == machine_id][:12]
     sops = {k: v[:1500] for k, v in _sops().items()}
     lesson: Lesson = _generate(MODEL, [PROMPT.format(machine=f"{machine_id} {name}", sops=json.dumps(sops),
-                                                     past=json.dumps(past, default=str))], Lesson)
+                                                     past=json.dumps(past, default=str)) + (f"\nWrite ALL text in {lang_name}, in simple words a new operator "
+                                                     f"would use. Keep codes unchanged (M1, D016, SOP-01, numbers with units)." 
+                                                     if lang_name and lang_name != "Indian English" else "")], Lesson)
     valid = {r["defect_id"] for r in past}
     kept = [m for m in lesson.common_mistakes if all(i in valid for i in ID_RE.findall(m))]   # validated in code
     removed = len(lesson.common_mistakes) - len(kept)
