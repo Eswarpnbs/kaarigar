@@ -101,9 +101,30 @@ def create_work_order(part_id: str):
     return act.create_work_order(part_id)
 
 
+from fastapi import Header
+
+
+def _verify_supervisor(authorization):
+    """Firebase Authentication: approvals require a signed-in supervisor (ID token verified server-side)."""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(401, "Please sign in as a supervisor to approve or reject.")
+    try:
+        import os
+        import firebase_admin
+        from firebase_admin import auth as fb_auth
+        if not firebase_admin._apps:
+            firebase_admin.initialize_app(options={"projectId": os.environ.get("GOOGLE_CLOUD_PROJECT", "kaarigar-510716")})
+        return fb_auth.verify_id_token(authorization.split(" ", 1)[1])
+    except Exception as e:
+        raise HTTPException(401, f"Sign-in could not be verified ({type(e).__name__}). Please sign in again.")
+
+
 @app.post("/api/work-orders/{wo_id}/decision")
-def decide(wo_id: str, d: Decision):
-    return act.decide_work_order(wo_id, d.approve, "supervisor", d.comment)
+def decide(wo_id: str, d: Decision, authorization: str | None = Header(default=None)):
+    claims = _verify_supervisor(authorization)
+    provider = claims.get("firebase", {}).get("sign_in_provider", "unknown")
+    who = f"supervisor (Firebase Auth uid {claims['uid'][:8]}…, {provider})"
+    return act.decide_work_order(wo_id, d.approve, who, d.comment)
 
 
 @app.get("/api/work-orders")

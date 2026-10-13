@@ -229,6 +229,7 @@ def diagnose(machine_id: str, defect_type: str, description: str, product: str =
         for r in _past():
             days = (today - date.fromisoformat(r["date"])).days
             if (r["supplier"] == supplier and r["batch"] == batch and r["defect_type"] in fam
+                    and r.get("category_6m") == "Material"
                     and r.get("fix_verified") and days <= 45
                     and not any(c["defect_id"] == r["defect_id"] for c in recur)):
                 recur.append({"defect_id": r["defect_id"], "date": r["date"], "days_ago": days,

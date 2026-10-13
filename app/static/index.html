@@ -33,7 +33,7 @@ code{font-size:11px;color:#fbbf24}
 footer{color:var(--muted);font-size:12px;text-align:center;padding:16px}
 </style></head><body>
 <header><span class="logo">Kaarigar</span><span class="tag">One photo of a good part, one phone, zero training.</span>
-<span class="badge">AI informs · humans decide</span><span class="badge">Machine data SIMULATED · past records SYNTHETIC</span></header>
+<span class="badge">AI informs · humans decide</span><span class="badge">Machine data SIMULATED · past records SYNTHETIC</span><span id="authBox" class="badge"></span></header>
 <main>
 <section class="card"><button class="primary" id="demoBtn" style="width:100%;margin-bottom:8px">▶ Try the demo</button>
 <button id="realBtn" style="width:100%;margin-bottom:8px">▶ Real factory part (Peenya)</button>
@@ -113,9 +113,17 @@ async function workOrder(partId){
 }
 async function decide(woId,approve){
  $('#apBtn').disabled=$('#rjBtn').disabled=true;const el=stepEl('s4','4 · Verify');
- const wo=(await api(`/api/work-orders/${woId}/decision`,{method:'POST',body:{approve,comment:approve?'Approved in Kaarigar UI':'Rejected in Kaarigar UI'}})).work_order;
+ if(!window.kAuth||!window.kAuth.user){
+  if(!confirm('Approvals must be made by a signed-in supervisor. Sign in as the demo supervisor?')){$('#apBtn').disabled=$('#rjBtn').disabled=false;el.remove();return}
+  await window.kAuth.signIn(); log('Firebase Auth','Signed in as demo supervisor');
+ }
+ const tok=await window.kAuth.token();
+ const resp=await fetch(`/api/work-orders/${woId}/decision`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({approve,comment:approve?'Approved in Kaarigar UI':'Rejected in Kaarigar UI'})});
+ if(!resp.ok){done(el,`<p class="small">${esc(await resp.text())}</p>`);$('#apBtn').disabled=$('#rjBtn').disabled=false;return}
+ const wo=(await resp.json()).work_order;
+ tool('Action','approval_gate',`verified by Firebase Auth → ${wo.approval.by}`);
  log('Supervisor',approve?`Approved ${woId}`:`Rejected ${woId}`);
- done(el,approve?`<p><span class="chip ok">Approved by supervisor</span></p><p>Verification due by ${esc(wo.verification.due_by)}: ${esc(wo.verification.plan)}</p>`
+ done(el,approve?`<p><span class="chip ok">Approved by supervisor</span> <span class="small">${esc(wo.approval.by)} · ${esc(wo.approval.at)}</span></p><p>Verification due by ${esc(wo.verification.due_by)}: ${esc(wo.verification.plan)}</p>`
   :`<p><span class="chip bad">Rejected</span> No action taken. The diagnosis stays on record for review.</p>`);
  if(approve)log('Kaarigar','Re-check scheduled: Detect → Diagnose → Act → Verify');
 }
@@ -246,4 +254,31 @@ async function runMeasure(){
 }
 $('#calBtn').onclick=showMeasure;
 loadParts();loadFactory();showMap();
-</script></body></html>
+</script><script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+const app = initializeApp({
+  apiKey: "AIzaSyCtBfoI2roXMXa-8dHGofdgPijgBDMlwT0",
+  authDomain: "kaarigar-510716.firebaseapp.com",
+  projectId: "kaarigar-510716",
+  storageBucket: "kaarigar-510716.firebasestorage.app",
+  messagingSenderId: "1092998207528",
+  appId: "1:1092998207528:web:5441cbf174d6987d0efd1d"
+});
+const auth = getAuth(app);
+window.kAuth = {
+  user: null,
+  async token(){ return auth.currentUser ? await auth.currentUser.getIdToken() : null },
+  async signIn(){ return (await signInAnonymously(auth)).user },
+  async signOut(){ await signOut(auth) }
+};
+onAuthStateChanged(auth, u => {
+  window.kAuth.user = u;
+  const box = document.getElementById('authBox'); if(!box) return;
+  if(u){ box.innerHTML = '👷 Supervisor signed in (demo) · <a href="#" id="soBtn" style="color:#9aa0a6">sign out</a>';
+         document.getElementById('soBtn').onclick = e => { e.preventDefault(); window.kAuth.signOut() }; }
+  else { box.innerHTML = '<a href="#" id="siBtn" style="color:#f59e0b">Sign in as demo supervisor</a>';
+         document.getElementById('siBtn').onclick = e => { e.preventDefault(); window.kAuth.signIn() }; }
+});
+</script>
+</body></html>
