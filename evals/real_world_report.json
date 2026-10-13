@@ -1,0 +1,96 @@
+{
+  "cases": 9,
+  "TP": 4,
+  "FN": 0,
+  "TN": 3,
+  "FP": 2,
+  "ERROR": 0,
+  "recall": 1.0,
+  "good_parts_accepted": 0.6,
+  "rows": [
+    {
+      "case": "rw_bar_rust_74",
+      "truth_defect": true,
+      "predicted_defect": true,
+      "outcome": "TP",
+      "confidence": 95,
+      "types": [
+        "rust"
+      ]
+    },
+    {
+      "case": "rw_bar_rust_63",
+      "truth_defect": true,
+      "predicted_defect": true,
+      "outcome": "TP",
+      "confidence": 99,
+      "types": [
+        "rust"
+      ]
+    },
+    {
+      "case": "rw_bar_rust_64",
+      "truth_defect": true,
+      "predicted_defect": true,
+      "outcome": "TP",
+      "confidence": 95,
+      "types": [
+        "rust"
+      ]
+    },
+    {
+      "case": "rw_bar_good_58",
+      "truth_defect": false,
+      "predicted_defect": true,
+      "outcome": "FP",
+      "confidence": 94,
+      "types": [
+        "dent"
+      ]
+    },
+    {
+      "case": "rw_bar_good_61",
+      "truth_defect": false,
+      "predicted_defect": false,
+      "outcome": "TN",
+      "confidence": 95,
+      "types": []
+    },
+    {
+      "case": "rw_sprocket_good_9",
+      "truth_defect": false,
+      "predicted_defect": false,
+      "outcome": "TN",
+      "confidence": 95,
+      "types": []
+    },
+    {
+      "case": "rw_sprocket_good_12",
+      "truth_defect": false,
+      "predicted_defect": true,
+      "outcome": "FP",
+      "confidence": 95,
+      "types": [
+        "discoloration"
+      ]
+    },
+    {
+      "case": "rw_cover_bad",
+      "truth_defect": true,
+      "predicted_defect": true,
+      "outcome": "TP",
+      "confidence": 95,
+      "types": [
+        "scratch"
+      ]
+    },
+    {
+      "case": "rw_cover_good",
+      "truth_defect": false,
+      "predicted_defect": false,
+      "outcome": "TN",
+      "confidence": 95,
+      "types": []
+    }
+  ]
+}
