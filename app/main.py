@@ -341,5 +341,26 @@ def verify_fix(wo_id: str, v: VerifyRequest, authorization: str | None = Header(
             learned = {"error": type(e).__name__}
     return {**res, "part_ok": part_ok, "vibration_ok": vib_ok, "passed": passed, "learned": learned}
 
+
+# ---------------- Prevent: SOP change proposals (Gemini drafts, supervisor approves) ----------------
+class SopDecision(BaseModel):
+    approve: bool
+
+
+@app.post("/api/work-orders/{wo_id}/sop-change")
+def sop_change(wo_id: str):
+    from agents.prevent import propose_sop_change
+    try:
+        return propose_sop_change(wo_id)
+    except Exception as e:
+        raise HTTPException(503, f"Could not draft the SOP change, please try again ({type(e).__name__})")
+
+
+@app.post("/api/sop-changes/{cid}/decision")
+def sop_decision(cid: str, d: SopDecision, authorization: str | None = Header(default=None)):
+    claims = _verify_supervisor(authorization)
+    from agents.prevent import decide_sop_change
+    return decide_sop_change(cid, d.approve, f"supervisor (Firebase Auth uid {claims['uid'][:8]}…)")
+
 if STATIC.exists():
     app.mount("/", StaticFiles(directory=STATIC, html=True), name="static")

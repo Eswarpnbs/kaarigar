@@ -266,11 +266,35 @@ async function verify(woId){
  if(!r.ok){$('#vfOut').innerHTML=`<p class="small">${esc(await r.text())}</p>`;$('#vfBtn').disabled=false;return}
  const v=await r.json();const wo=v.work_order;
  $('#vfOut').innerHTML=v.passed
-  ?`<p><span class="chip ok">Verified · work order CLOSED</span></p><p class="small">${esc(wo.verification.result)}</p>${v.learned&&v.learned.defect_id?`<p class="small">🧠 <b>Learn:</b> this verified fix is now in Factory Memory (${esc(v.learned.defect_id)}, confirmed ${esc(v.learned.times_confirmed)}×). Future diagnoses will use it.</p>`:''}`
+  ?`<p><span class="chip ok">Verified · work order CLOSED</span></p><p class="small">${esc(wo.verification.result)}</p>${v.learned&&v.learned.defect_id?`<p class="small">🧠 <b>Learn:</b> this verified fix is now in Factory Memory (${esc(v.learned.defect_id)}, confirmed ${esc(v.learned.times_confirmed)}×). Future diagnoses will use it.</p>`:''}<p><button id="pvBtn">🛡️ Prevent: propose SOP update</button></p><div id="pvOut"></div>`
   :`<p><span class="chip bad">Re-check FAILED · work order REOPENED</span></p><p class="small">${esc(wo.verification.result)} The fix did not work, so a deeper root cause is needed.</p>`;
  tool('Inspector','verify',`part ${v.part_ok?'OK':'defect'} · vibration ${v.vibration_ok?'acceptable':'still high'} → ${v.passed?'closed':'reopened'} (decided in code)`);
  log('Kaarigar',v.passed?'Loop closed: Detect → Diagnose → Act → Verify ✓':'Fix failed: work order reopened');
  if(v.learned&&v.learned.defect_id)tool('Kaarigar','learn',`Factory Memory += ${v.learned.defect_id} (confirmed ${v.learned.times_confirmed}×)`);
+ if(v.passed)$('#pvBtn').onclick=()=>prevent(woId);
+}
+
+async function prevent(woId){
+ $('#pvBtn').disabled=true;$('#pvOut').innerHTML='<span class="spinner"></span><span class="small">Drafting an SOP change…</span>';
+ log('Action','Prevent: drafting an SOP change from the 8D');
+ let r;try{r=await api(`/api/work-orders/${woId}/sop-change`,{method:'POST'})}catch(e){$('#pvOut').innerHTML=`<p class="small">Could not draft the SOP change right now. Please try again.</p>`;$('#pvBtn').disabled=false;return}
+ if(r.status!=='success'){$('#pvOut').innerHTML=`<p class="small">${esc(r.message||'Could not draft the change')}</p>`;$('#pvBtn').disabled=false;return}
+ const c=r.change;
+ $('#pvOut').innerHTML=`<div class="banner" style="background:#12301d;border-color:#166534;color:#bbf7d0">🛡️ Proposed change to <b>${esc(c.sop_id)}</b> (${esc(c.change_type)}):<br>“${esc(c.new_text)}”<br><span class="small">Why: ${esc(c.reason)} · How we'll know it works: ${esc(c.verification)}</span></div>
+ <p><button class="ok" id="pvAp">Approve SOP change</button> <button class="bad" id="pvRj">Reject</button></p><div id="pvDec"></div>`;
+ tool('Action','sop_change',`${c.change_id} → ${c.sop_id} (pending supervisor approval)`);
+ $('#pvAp').onclick=()=>decideSop(c.change_id,true);$('#pvRj').onclick=()=>decideSop(c.change_id,false);
+}
+async function decideSop(cid,approve){
+ $('#pvAp').disabled=$('#pvRj').disabled=true;
+ const tok=await window.kAuth.token();
+ const r=await fetch(`/api/sop-changes/${cid}/decision`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({approve})});
+ const d=await r.json();
+ $('#pvDec').innerHTML=(r.ok&&d.status==='success')
+  ?(approve?`<p><span class="chip ok">SOP updated</span> <span class="small">${esc(d.change.sop_id)} now includes this step; future diagnoses and 8Ds will cite it.</span></p>`:`<p><span class="chip bad">SOP change rejected</span></p>`)
+  :`<p class="small">${esc(d.detail||d.message||'Error')}</p>`;
+ log('Supervisor',approve?`Approved SOP change ${cid}`:`Rejected SOP change ${cid}`);
+ if(approve&&r.ok)log('Kaarigar','Prevent ✓: the root cause is now blocked at the source');
 }
 loadParts();loadFactory();showMap();
 </script><script type="module">

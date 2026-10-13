@@ -120,8 +120,29 @@ def _past() -> list:
 
 
 @lru_cache(maxsize=1)
-def _sops() -> dict:
+def _seed_sops() -> dict:
     return {p.name.split("_")[0]: p.read_text() for p in sorted((SEED / "sops").glob("SOP-*.md"))}
+
+
+_sop_cache = {"t": 0.0, "v": None}
+
+
+def _sops() -> dict:
+    """SOP texts + supervisor-approved changes (Prevent step), cached 30 s."""
+    import time as _t
+    if _sop_cache["v"] is not None and _t.time() - _sop_cache["t"] < 30:
+        return _sop_cache["v"]
+    sops = dict(_seed_sops())
+    try:
+        from agents.action import STORE
+        for c in sorted(STORE.list("sop_changes"), key=lambda c: c.get("decided_at", "")):
+            if c.get("status") == "approved" and c.get("sop_id") in sops:
+                sops[c["sop_id"]] += (f"\n- APPROVED CHANGE {c.get('decided_at', '')[:10]} "
+                                      f"(from {c.get('wo_id', '')}): {c['new_text']}")
+    except Exception:
+        pass
+    _sop_cache.update(t=_t.time(), v=sops)
+    return sops
 
 
 def part_info(part_id: str) -> dict:
