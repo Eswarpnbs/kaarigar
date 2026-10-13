@@ -1,0 +1,7 @@
+{
+  "hosting": {
+    "public": "hosting_public",
+    "ignore": ["firebase.json", "**/.*"],
+    "rewrites": [{ "source": "**", "run": { "serviceId": "kaarigar", "region": "asia-south1" } }]
+  }
+}
