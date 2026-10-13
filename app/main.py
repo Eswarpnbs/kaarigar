@@ -408,5 +408,76 @@ def sop_decision(cid: str, d: SopDecision, authorization: str | None = Header(de
     from agents.prevent import decide_sop_change
     return decide_sop_change(cid, d.approve, f"supervisor (Firebase Auth uid {claims['uid'][:8]}…)")
 
+
+# ---------------- Budget guard: limits live (paid) Gemini calls; cached paths stay free ----------------
+import os
+import re as _re_guard
+import time as _time_guard
+from collections import defaultdict, deque
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
+LIVE_PER_IP_HOUR = int(os.environ.get("KAARIGAR_LIVE_PER_IP_HOUR", "40"))
+LIVE_PER_DAY = int(os.environ.get("KAARIGAR_LIVE_PER_DAY", "600"))
+_ip_hits = defaultdict(deque)
+_day_local = {"d": "", "n": 0}
+LIVE_RULES = [
+    (r"^/api/inspect/([^/]+)$", "inspect"),
+    (r"^/api/diagnose/([^/]+)$", "diagnose"),
+    (r"^/api/diagnose-report$", None), (r"^/api/voice$", None), (r"^/api/speak$", None),
+    (r"^/api/measure$", None), (r"^/api/work-orders/[^/]+/sop-change$", None),
+    (r"^/api/work-orders/[^/]+$", None),          # create work order + 8D draft
+]
+
+
+def _client_ip(request) -> str:
+    xff = request.headers.get("x-forwarded-for", "")
+    return xff.split(",")[0].strip() or (request.client.host if request.client else "unknown")
+
+
+def _daily_count() -> int:
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    d = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%Y%m%d")
+    if os.environ.get("KAARIGAR_STORE") == "firestore":
+        try:
+            from google.cloud import firestore
+            ref = firestore.Client().collection("usage").document(d)
+            ref.set({"live_calls": firestore.Increment(1)}, merge=True)
+            return int((ref.get().to_dict() or {}).get("live_calls", 0))
+        except Exception:
+            pass
+    if _day_local["d"] != d:
+        _day_local.update(d=d, n=0)
+    _day_local["n"] += 1
+    return _day_local["n"]
+
+
+@app.middleware("http")
+async def live_budget(request, call_next):
+    if request.method == "POST":
+        path, fresh = request.url.path, request.query_params.get("fresh") in ("true", "1")
+        for pat, kind in LIVE_RULES:
+            m = _re_guard.match(pat, path)
+            if not m:
+                continue
+            if kind == "inspect" and not fresh and (INSPECTION_CACHE / f"{m.group(1)}.json").exists():
+                break                                   # cached: free
+            if kind == "diagnose" and not fresh and (act.DIAG_CACHE / f"{m.group(1)}.json").exists():
+                break                                   # cached: free
+            ip, now = _client_ip(request), _time_guard.time()
+            q = _ip_hits[ip]
+            while q and now - q[0] > 3600:
+                q.popleft()
+            if len(q) >= LIVE_PER_IP_HOUR:
+                return JSONResponse({"detail": "You've reached the live-demo limit for this hour. "
+                                     "The demo buttons (cached results) still work; please try live features later."}, 429)
+            if _daily_count() > LIVE_PER_DAY:
+                return JSONResponse({"detail": "Today's live-demo budget is used up. The demo buttons "
+                                     "(cached results) still work; live features reset at midnight IST."}, 429)
+            q.append(now)
+            break
+    return await call_next(request)
+
 if STATIC.exists():
     app.mount("/", StaticFiles(directory=STATIC, html=True), name="static")
