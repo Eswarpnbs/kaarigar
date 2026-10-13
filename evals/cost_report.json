@@ -1,8 +1,8 @@
 {
   "per_inspection_usd": 0.0048,
   "per_inspection_inr": 0.46,
-  "full_defect_case_inr": 1.84,
-  "month_100_inspections_per_day_5_defect_cases_inr": 1366.0,
+  "full_defect_case_inr": 1.51,
+  "month_100_inspections_per_day_5_defect_cases_inr": 1323.0,
   "inr_per_usd_assumed": 95.08,
   "rows": [
     {
@@ -12,7 +12,7 @@
       "output_tokens": 785,
       "usd": 0.00305,
       "inr": 0.29,
-      "seconds": 11.5
+      "seconds": 10.6
     },
     {
       "stage": "Inspect: defective part",
@@ -21,7 +21,7 @@
       "output_tokens": 1599,
       "usd": 0.0048,
       "inr": 0.456,
-      "seconds": 263.9
+      "seconds": 15.6
     },
     {
       "stage": "Diagnose (root cause, 5 Whys)",
@@ -30,16 +30,16 @@
       "output_tokens": 2838,
       "usd": 0.00798,
       "inr": 0.759,
-      "seconds": 95.6
+      "seconds": 18.1
     },
     {
       "stage": "Act (work order + 8D draft)",
       "calls": 1,
       "input_tokens": 2646,
-      "output_tokens": 2294,
-      "usd": 0.00653,
-      "inr": 0.621,
-      "seconds": 27.9
+      "output_tokens": 916,
+      "usd": 0.00308,
+      "inr": 0.293,
+      "seconds": 32.0
     }
   ]
 }

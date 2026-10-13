@@ -48,7 +48,7 @@ def client() -> genai.Client:
             vertexai=True, project=PROJECT, location=LOCATION,
             # 90 s timeout: a hung request fails fast and gets retried instead of
             # blocking the whole run forever
-            http_options=types.HttpOptions(timeout=180_000),
+            http_options=types.HttpOptions(timeout=60_000, retry_options=types.HttpRetryOptions(attempts=2, initial_delay=1.0, max_delay=4.0)),
         )
     return _client
 
@@ -156,9 +156,21 @@ def _part(img: Image.Image) -> types.Part:
     return types.Part.from_bytes(data=buf.getvalue(), mime_type="image/jpeg")
 
 
-@retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=2, min=4, max=60),
-       reraise=True)
+FALLBACK_MODEL = os.environ.get("KAARIGAR_FALLBACK_MODEL", "gemini-2.5-flash-lite")
+
+
 def _generate(model: str, contents: list, schema):
+    """Short retries on the main model; if Gemini is busy, fall back ONCE to a lighter model."""
+    try:
+        return _generate_retry(model, contents, schema)
+    except Exception:
+        if model == FALLBACK_MODEL:
+            raise
+        return _generate_retry(FALLBACK_MODEL, contents, schema)
+
+
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=8), reraise=True)
+def _generate_retry(model: str, contents: list, schema):
     resp = client().models.generate_content(
         model=model,
         contents=contents,
