@@ -60,3 +60,4 @@ websockets==15.0.1
 google-cloud-texttospeech
 python-multipart
 firebase-admin
+google-cloud-vision

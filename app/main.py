@@ -275,11 +275,48 @@ class CaliperReading(BaseModel):
     unit: Literal["mm", "inch", "unknown"]
     confidence: int = Field(description="0-100: how sure the digits are read correctly")
     note: str = Field(description="short note, e.g. glare, several displays, blurry")
+    display_box_2d: list[int] = Field(default_factory=list, description="[ymin, xmin, ymax, xmax] of the display that was read, 0-1000 scale")
 
 CALIPER_PROMPT = """Read the measuring instrument display (digital caliper or micrometer) in this photo.
 Report the digits EXACTLY as shown; do not round or guess. If several displays are visible, read the one
 closest to the centre of the photo and mention that in the note. If the digits are not clearly readable
-(blur, glare, cut off), set legible=false and confidence below 50. Unit: look for mm/in indicators."""
+(blur, glare, cut off), set legible=false and confidence below 50. Unit: look for mm/in indicators. Also give display_box_2d: the box around the display you read."""
+
+
+
+def _normalize_photo(data: bytes):
+    """Straighten (EXIF) and re-encode once, so Gemini and Cloud Vision see the identical image."""
+    import io
+    from PIL import Image, ImageOps
+    im = ImageOps.exif_transpose(Image.open(io.BytesIO(data))).convert("RGB")
+    im.thumbnail((2000, 2000))
+    buf = io.BytesIO(); im.save(buf, "JPEG", quality=90)
+    return buf.getvalue(), im.size
+
+
+def _vision_numbers(data: bytes, box, size):
+    """Cloud Vision OCR numbers found INSIDE the display box (printed labels elsewhere don't count)."""
+    try:
+        import re as _re
+        from google.cloud import vision
+        resp = vision.ImageAnnotatorClient().text_detection(image=vision.Image(content=data))
+        if resp.error.message or not box or len(box) != 4:
+            return None
+        W, H = size
+        y0, x0, y1, x1 = box
+        pad = 60
+        inside = []
+        for w in resp.text_annotations[1:]:
+            vs = w.bounding_poly.vertices
+            cx = sum(v.x for v in vs) / len(vs) / W * 1000
+            cy = sum(v.y for v in vs) / len(vs) / H * 1000
+            if x0 - pad <= cx <= x1 + pad and y0 - pad <= cy <= y1 + pad:
+                inside.append(w.description.replace(",", "."))
+        cands = inside + [a + b for a, b in zip(inside, inside[1:])]
+        return sorted({float(x) for t in cands for x in _re.findall(r"\d+\.\d+", t)})
+    except Exception:
+        return None
+
 
 @app.post("/api/measure")
 async def measure(image: UploadFile = File(...), nominal: float = Form(...), tol: float = Form(...)):
@@ -288,7 +325,8 @@ async def measure(image: UploadFile = File(...), nominal: float = Form(...), tol
         raise HTTPException(413, "Photo is empty or too large.")
     if tol <= 0:
         raise HTTPException(400, "Tolerance must be greater than zero.")
-    mime = image.content_type or "image/jpeg"
+    data, size = _normalize_photo(data)
+    mime = "image/jpeg"
     try:
         r: CaliperReading = _generate(GEMINI_MODEL, [gtypes.Part.from_bytes(data=data, mime_type=mime), CALIPER_PROMPT], CaliperReading)
     except Exception as e:
@@ -302,9 +340,17 @@ async def measure(image: UploadFile = File(...), nominal: float = Form(...), tol
         verdict = "ok" if ok else "not_ok"
         margin = round(min(value - lo, hi - value), 3)          # distance to nearest limit (negative = outside)
         near = ok and margin <= 0.2 * tol                        # within 20% of the band edge
+    vnums = _vision_numbers(data, r.display_box_2d, size)   # second reader, same place only
+    if not vnums:
+        cross = {"status": "not_checked", "note": "Cloud Vision found no readable digits at the display (common on LCD displays)."}
+    else:
+        agree = any(abs(n - r.reading) < 0.006 for n in vnums)
+        cross = {"status": "agree" if agree else "disagree", "vision_numbers": vnums[:6]}
+        if not agree and verdict in ("ok", "not_ok"):
+            verdict, margin, near = "retake_photo", None, False   # readers disagree: never guess
     return {"verdict": verdict, "value_mm": value, "spec": {"nominal": nominal, "tol": tol, "min": lo, "max": hi},
             "margin_mm": margin, "near_limit": near, "reading": r.model_dump(),
-            "decided_by": "code (Gemini only reads the digits)"}
+            "cross_check": cross, "decided_by": "code (Gemini reads the digits; Cloud Vision OCR cross-checks)"}
 
 
 # ---------------- Verify: re-check after the fix (decided in code) ----------------

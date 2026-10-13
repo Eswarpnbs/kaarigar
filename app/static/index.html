@@ -248,10 +248,11 @@ async function runMeasure(){
   const m=await r.json();const sp=m.spec;
   const chip=m.verdict==='ok'?(m.near_limit?'<span class="chip warn">OK · close to limit</span>':'<span class="chip ok">OK</span>'):m.verdict==='not_ok'?'<span class="chip bad">NOT OK</span>':'<span class="chip warn">Retake photo</span>';
   $('#calOut').innerHTML=`<div class="imgwrap" style="max-width:320px"><img src="${URL.createObjectURL(f)}"></div>
-  <p>${chip}<span class="chip">Read: ${esc(m.reading.display_text)} ${esc(m.reading.unit)}</span><span class="chip">Spec ${esc(sp.nominal)} ± ${esc(sp.tol)} (${esc(sp.min)}–${esc(sp.max)})</span></p>
+  <p>${chip}<span class="chip">Read: ${esc(m.reading.display_text)} ${esc(m.reading.unit)}</span>${m.cross_check&&m.cross_check.status==='agree'?'<span class="chip ok">✓ Cloud Vision OCR agrees at the display</span>':m.cross_check&&m.cross_check.status==='disagree'?`<span class="chip warn">Readers disagree (Vision read ${esc((m.cross_check.vision_numbers||[]).join(', '))})</span>`:'<span class="chip">Single reader (Vision could not read the display)</span>'}<span class="chip">Spec ${esc(sp.nominal)} ± ${esc(sp.tol)} (${esc(sp.min)}–${esc(sp.max)})</span></p>
   <p class="small">${m.margin_mm!=null?`Margin to nearest limit: ${esc(m.margin_mm)} mm. `:''}Reading confidence ${esc(m.reading.confidence)}%. ${esc(m.reading.note)}</p>
   <p class="small">Decided by ${esc(m.decided_by)}.</p>`;
   log('Inspector',`Read ${m.reading.display_text} ${m.reading.unit} (confidence ${m.reading.confidence}%)`);
+  tool('Inspector','vision_ocr_crosscheck',m.cross_check?(m.cross_check.status+(m.cross_check.vision_numbers?': '+m.cross_check.vision_numbers.join(', '):'')):'n/a');
   tool('Inspector','tolerance_check',`${m.value_mm} vs ${sp.min}–${sp.max} → ${m.verdict}${m.near_limit?' (close to limit)':''}`);
  }finally{$('#calGo').disabled=false}
 }
