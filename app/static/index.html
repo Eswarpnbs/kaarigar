@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Kaarigar — AI quality co-pilot for small factories</title>
+<link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#f59e0b">
+<link rel="icon" href="/icon-192.png"><link rel="apple-touch-icon" href="/icon-192.png">
 <style>
 :root{--bg:#0f1115;--card:#171a21;--line:#262b36;--text:#e8eaed;--muted:#9aa0a6;--brand:#f59e0b;--ok:#22c55e;--bad:#ef4444}
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text)}
@@ -33,13 +35,16 @@ code{font-size:11px;color:#fbbf24}
 footer{color:var(--muted);font-size:12px;text-align:center;padding:16px}
 </style></head><body>
 <header><span class="logo">Kaarigar</span><span class="tag">One photo of a good part, one phone, zero training.</span>
-<span class="badge">AI informs · humans decide</span><span class="badge">Machine data SIMULATED · past records SYNTHETIC</span><span id="authBox" class="badge"></span></header>
+<span class="badge">AI informs · humans decide</span><span class="badge">Machine data SIMULATED · past records SYNTHETIC</span><span id="authBox" class="badge"></span><select id="lang" style="margin-left:auto;background:#171a21;color:#e8eaed;border:1px solid #262b36;border-radius:6px;padding:3px 6px"><option value="en">EN</option><option value="kn">ಕನ್ನಡ</option><option value="hi">हिन्दी</option><option value="te">తెలుగు</option></select></header>
 <main>
 <section class="card"><button class="primary" id="demoBtn" style="width:100%;margin-bottom:8px">▶ Try the demo</button>
 <button id="realBtn" style="width:100%;margin-bottom:8px">▶ Real factory part (Peenya)</button>
 <button id="micBtn" style="width:100%;margin-bottom:8px">🎙 Report a problem by voice</button>
 <button id="mapBtn" style="width:100%;margin-bottom:8px">🏭 Factory map</button>
-<button id="calBtn" style="width:100%;margin-bottom:12px">📏 Check a measurement</button>
+<button id="calBtn" style="width:100%;margin-bottom:8px">📏 Check a measurement</button>
+<button id="supBtn" style="width:100%;margin-bottom:8px">🏷️ Supplier scorecard</button>
+<button id="ownBtn" class="primary" style="width:100%;margin-bottom:8px">📷 Inspect your own part</button>
+<button id="teachBtn" style="width:100%;margin-bottom:12px">🎓 Kaarigar Teaches (new operator)</button>
 <h2>Parts</h2><div id="parts"></div><h2 style="margin-top:16px">Factory (live)</h2><div id="factory" class="small">Loading…</div></section>
 <section class="card"><div id="flow"><p class="small">Pick a part or press <b>Try the demo</b>. Kaarigar inspects it against golden samples, finds the root cause, and drafts a work order for a supervisor to approve.</p></div></section>
 <section class="card"><h2>Agent reasoning</h2><div id="log" class="log"><div class="small">Each step the agents take appears here.</div></div></section>
@@ -195,8 +200,9 @@ function spark(hist,fc){
   <polyline points="${hp}" fill="none" stroke="#60a5fa" stroke-width="2"/>
   ${fp?`<polyline points="${fp}" fill="none" stroke="#fca5a5" stroke-width="2" stroke-dasharray="5 3"/>`:''}</svg>`}
 async function showMap(){
- $('#flow').innerHTML='<h2>Live Factory Map</h2><div class="small">Loading machines…</div>';
- let d;try{d=await api('/api/map')}catch(e){$('#flow').innerHTML='<p class="small">Factory map unavailable.</p>';return}
+ $('#flow').innerHTML='<h2>Live Factory Map</h2><div class="small" id="mapLoading">Loading machines…</div>';
+ let d;try{d=await api('/api/map')}catch(e){if(document.getElementById('mapLoading'))$('#flow').innerHTML='<p class="small">Factory map unavailable.</p>';return}
+ if(!document.getElementById('mapLoading'))return;   // user opened another feature meanwhile: don't take over the screen
  const col={critical:'#ef4444',warning:'#f59e0b',normal:'#22c55e'};
  $('#flow').innerHTML=`<h2>Live Factory Map</h2>
  <p class="small">Click a machine, pick a part, or press <b>Try the demo</b>. Blue = last 24 h vibration · dashed red = BigQuery ML forecast · dotted lines = ISO limits (2.8 restricted, 4.5 damage likely). ${esc(d.data_note)}.</p>
@@ -208,6 +214,7 @@ async function showMap(){
    <div class="small">${m.hours_to_zone_d!=null?`<span style="color:#fca5a5">⏱ damage zone in ~${esc(m.hours_to_zone_d)} h if left running</span>`:'No danger forecast in the next 24 h'}${m.top_hint?' · hint: '+esc(m.top_hint):''}</div>
   </div>`).join('')}</div>`;
  document.querySelectorAll('.mtile').forEach(t=>t.onclick=()=>machineCheck(t.dataset.id,d.machines.find(x=>x.machine_id===t.dataset.id)));
+ loadImpact();
 }
 async function machineCheck(mid,m){
  if(window._mcBusy)return;window._mcBusy=true;try{
@@ -297,7 +304,134 @@ async function decideSop(cid,approve){
  log('Supervisor',approve?`Approved SOP change ${cid}`:`Rejected SOP change ${cid}`);
  if(approve&&r.ok)log('Kaarigar','Prevent ✓: the root cause is now blocked at the source');
 }
+
+async function loadImpact(){try{
+ const i=await api('/api/impact');if(document.getElementById('impact'))return;
+ const box=document.createElement('div');box.id='impact';box.style.cssText='display:flex;flex-wrap:wrap;gap:6px;margin:8px 0';
+ box.innerHTML=[['🔍','Defects caught',i.defects_caught],['🔁','Repeat problems found',i.repeat_problems],['✅','Fixes verified',i.fixes_verified],
+  ['🧠','Lessons learned',i.lessons_learned],['🛡️','SOPs improved',i.sop_improvements],['₹','Live AI cost today',i.est_ai_cost_today_inr]]
+  .map(([e,l,v])=>`<span class="chip">${e} ${esc(l)}: <b>${esc(v)}</b></span>`).join('');
+ const h=document.querySelector('#flow h2');if(h)h.after(box);
+}catch(e){}}
+
+async function showSuppliers(){
+ t0=performance.now();$('#log').innerHTML='';
+ let d;try{d=await api('/api/suppliers')}catch(e){$('#flow').innerHTML='<p class="small">Supplier scorecard unavailable.</p>';return}
+ $('#flow').innerHTML=`<h2>🏷️ Supplier scorecard</h2><p class="small">${esc(d.rule)}. ${esc(d.data_note)}.</p>
+ <table style="width:100%;border-collapse:collapse;font-size:13px">
+ <tr style="color:#9aa0a6;text-align:left"><th>Supplier</th><th>Rating</th><th>Material problems (30 days / all)</th><th>Repeat batches</th><th>Most common</th></tr>
+ ${d.suppliers.map(s=>`<tr style="border-top:1px solid #262b36"><td style="padding:6px 0">${esc(s.supplier)}</td>
+  <td><span class="chip ${s.rating.startsWith('C')?'bad':s.rating.startsWith('B')?'warn':'ok'}">${esc(s.rating)}</span></td>
+  <td>${esc(s.last_30_days)} / ${esc(s.material_issues)}</td><td>${esc(s.repeat_batches.join(', ')||'—')}</td>
+  <td>${esc(s.top_defects.join(', ')||'—')}</td></tr>`).join('')}</table>`;
+ log('Kaarigar','Supplier scorecard computed from Factory Memory');
+ tool('Kaarigar','supplier_scorecard',`${d.suppliers.length} suppliers rated (rules in code)`);
+}
+$('#supBtn').onclick=showSuppliers;
+
+const I18N={
+ tagline:{en:'One photo of a good part, one phone, zero training.',kn:'ಒಳ್ಳೆಯ ಭಾಗದ ಒಂದು ಫೋಟೋ, ಒಂದು ಫೋನ್, ತರಬೇತಿ ಬೇಕಿಲ್ಲ.',hi:'अच्छे पार्ट की एक फ़ोटो, एक फ़ोन, कोई ट्रेनिंग नहीं।',te:'మంచి భాగం ఒక ఫోటో, ఒక ఫోన్, శిక్షణ అవసరం లేదు.'},
+ demoBtn:{en:'▶ Try the demo',kn:'▶ ಡೆಮೊ ನೋಡಿ',hi:'▶ डेमो देखें',te:'▶ డెమో చూడండి'},
+ realBtn:{en:'▶ Real factory part (Peenya)',kn:'▶ ನಿಜವಾದ ಕಾರ್ಖಾನೆ ಭಾಗ (ಪೀಣ್ಯ)',hi:'▶ असली फ़ैक्टरी पार्ट (पीण्या)',te:'▶ నిజమైన ఫ్యాక్టరీ భాగం (పీణ్య)'},
+ micBtn:{en:'🎙 Report a problem by voice',kn:'🎙 ಧ್ವನಿಯಲ್ಲಿ ಸಮಸ್ಯೆ ತಿಳಿಸಿ',hi:'🎙 आवाज़ से समस्या बताएं',te:'🎙 మాట్లాడి సమస్య చెప్పండి'},
+ mapBtn:{en:'🏭 Factory map',kn:'🏭 ಕಾರ್ಖಾನೆ ನಕ್ಷೆ',hi:'🏭 फ़ैक्टरी मैप',te:'🏭 ఫ్యాక్టరీ మ్యాప్'},
+ calBtn:{en:'📏 Check a measurement',kn:'📏 ಅಳತೆ ಪರಿಶೀಲಿಸಿ',hi:'📏 माप जांचें',te:'📏 కొలత తనిఖీ చేయండి'},
+ ownBtn:{en:'📷 Inspect your own part',kn:'📷 ನಿಮ್ಮ ಭಾಗವನ್ನು ಪರಿಶೀಲಿಸಿ',hi:'📷 अपना पार्ट जांचें',te:'📷 మీ భాగాన్ని తనిఖీ చేయండి'},
+ teachBtn:{en:'🎓 Kaarigar Teaches (new operator)',kn:'🎓 ಕಾರಿಗರ್ ಕಲಿಸುತ್ತದೆ (ಹೊಸ ಆಪರೇಟರ್)',hi:'🎓 कारीगर सिखाता है (नया ऑपरेटर)',te:'🎓 కారిగర్ నేర్పిస్తుంది (కొత్త ఆపరేటర్)'},
+ supBtn:{en:'🏷️ Supplier scorecard',kn:'🏷️ ಪೂರೈಕೆದಾರರ ಅಂಕಪಟ್ಟಿ',hi:'🏷️ सप्लायर स्कोरकार्ड',te:'🏷️ సరఫరాదారుల స్కోర్‌కార్డ్'},
+ parts:{en:'Parts',kn:'ಭಾಗಗಳು',hi:'पार्ट्स',te:'భాగాలు'},
+ factory:{en:'Factory (live)',kn:'ಕಾರ್ಖಾನೆ (ಲೈವ್)',hi:'फ़ैक्टरी (लाइव)',te:'ఫ్యాక్టరీ (లైవ్)'},
+ log:{en:'Agent reasoning',kn:'ಏಜೆಂಟ್ ತರ್ಕ',hi:'एजेंट की सोच',te:'ఏజెంట్ ఆలోచన'}
+};
+function applyLang(l){
+ try{localStorage.setItem('kLang',l)}catch(e){}
+ const t=k=>(I18N[k]&&(I18N[k][l]||I18N[k].en))||'';
+ const tag=document.querySelector('header .tag');if(tag)tag.textContent=t('tagline');
+ ['demoBtn','realBtn','micBtn','mapBtn','calBtn','supBtn','ownBtn','teachBtn'].forEach(id=>{const b=document.getElementById(id);if(b&&!(id==='micBtn'&&rec&&rec.state==='recording'))b.textContent=t(id)});
+ [['parts','parts'],['factory','factory'],['log','log']].forEach(([id,k])=>{const el=document.getElementById(id);if(el&&el.previousElementSibling&&el.previousElementSibling.tagName==='H2')el.previousElementSibling.textContent=t(k)});
+}
+(()=>{let l='en';try{l=localStorage.getItem('kLang')||'en'}catch(e){};$('#lang').value=l;$('#lang').onchange=()=>applyLang($('#lang').value);applyLang(l)})();
+
+function showOwn(){
+ t0=performance.now();$('#log').innerHTML='';
+ $('#flow').innerHTML=`<h2>📷 Inspect your own part</h2>
+ <div class="banner" style="background:#1d2130;border-color:#262b36;color:#e8eaed"><b>For a good result:</b> ① plain background ② the whole part in view, with a margin
+ ③ the same angle and distance for both photos ④ good light, no shadows ⑤ hold steady</div>
+ <p>1. A <b>good</b> part (golden sample): <input id="ownG" type="file" accept="image/*" capture="environment"></p>
+ <p>2. The part to <b>check</b>: <input id="ownT" type="file" accept="image/*" capture="environment"></p>
+ <p>3. Where it comes from: <select id="ownM"><option value="IN">Incoming material</option><option value="M1">M1 · CNC Lathe 1</option>
+ <option value="M2">M2 · CNC Lathe 2</option><option value="M3">M3 · Gear Hobbing</option><option value="M4">M4 · Shaping</option><option value="M5">M5 · Band Saw</option></select></p>
+ <p><button class="primary" id="ownGo">Inspect</button></p><div id="ownOut"></div>`;
+ $('#ownGo').onclick=runOwn;
+}
+async function runOwn(){
+ const g=$('#ownG').files[0],t=$('#ownT').files[0];if(!g||!t){alert('Please add both photos');return}
+ $('#ownGo').disabled=true;$('#ownOut').innerHTML='<span class="spinner"></span><span class="small">Checking photo quality, then inspecting (usually ~30 s)…</span>';
+ log('Inspector','Checking photo quality (in code), then comparing with your golden sample');
+ const fd=new FormData();fd.append('golden',g);fd.append('test',t);fd.append('machine_id',$('#ownM').value);
+ try{
+  const r=await fetch('/api/inspect-upload',{method:'POST',body:fd});
+  if(!r.ok){$('#ownOut').innerHTML=`<p class="small">${esc((await r.json().catch(()=>({}))).detail||'Please try again.')}</p>`;return}
+  const d=await r.json();
+  tool('Inspector','photo_quality',`golden ${d.quality.golden.issues.join('; ')||'ok'} · test ${d.quality.test.issues.join('; ')||'ok'}`);
+  if(d.verdict==='retake_photo'){$('#ownOut').innerHTML=`<p><span class="chip warn">Retake photo</span></p><p class="small">Golden: ${esc(d.quality.golden.issues.join('; ')||'ok')} · Part: ${esc(d.quality.test.issues.join('; ')||'ok')}</p>`;return}
+  const ins=d.inspection,pid=d.part_id;
+  const boxes=(ins.defects||[]).map(x=>{const [y0,x0,y1,x1]=x.box_2d;return `<div class="box" style="top:${y0/10}%;left:${x0/10}%;width:${(x1-x0)/10}%;height:${(y1-y0)/10}%"></div>`}).join('');
+  const conf=ins.recommendation==='human_check'?'Please check by eye':ins.confidence>=85?'Sure':ins.confidence>=60?'Please check':'Retake photo';
+  $('#ownOut').innerHTML=`<div class="imgs"><div><div class="small">Golden sample</div><div class="imgwrap"><img src="/api/parts/${pid}/image/golden"></div></div>
+  <div><div class="small">Your part</div><div class="imgwrap"><img src="/api/parts/${pid}/image/test">${boxes}</div></div></div>
+  <p>${ins.defect_found?'<span class="chip bad">Defect found</span>':'<span class="chip ok">No defect</span>'}<span class="chip">${esc(conf)} (${esc(ins.confidence)})</span><span class="chip">Recommendation: ${esc(ins.recommendation)}</span>${ins.consistency?`<span class="chip">Second look: ${esc(ins.consistency)}</span>`:''}</p>
+  ${(ins.defects||[]).map(x=>{const b=x.box_2d||[0,0,0,0],cy=(b[0]+b[2])/2,cx=(b[1]+b[3])/2,loc=x.location||((cy<333?'upper':cy>666?'lower':'middle')+'-'+(cx<333?'left':cx>666?'right':'center'));return `<p><b>${esc(x.type)}</b> · ${esc(x.severity)} · ${esc(loc)}: ${esc(x.description)}</p>`}).join('')}
+  ${ins.defect_found?'<p><button class="primary" id="ownDx">Find root cause</button></p><div id="ownDxOut"></div>':''}`;
+  log('Inspector',ins.defect_found?`Found ${ins.defects.length} defect(s), confidence ${ins.confidence}`:'No defect found');
+  if(ins.defect_found)$('#ownDx').onclick=async()=>{
+   $('#ownDx').disabled=true;$('#ownDxOut').innerHTML='<span class="spinner"></span><span class="small">Diagnosing…</span>';
+   const x=ins.defects[0];
+   try{const dg=await api('/api/diagnose-report',{method:'POST',body:{machine_id:d.machine_id,defect_type:x.type,description:x.description}});
+    const rp=dg.report;
+    $('#ownDxOut').innerHTML=`<p>${esc(rp.summary)}</p>${rp.likely_causes.map(c=>`<p><span class="chip">${esc(c.category_6m)}</span><b>${esc(c.cause)}</b></p>`).join('')}
+    <ol>${rp.recommended_actions.map(a=>`<li>${esc(a.action)} <span class="small">(${esc(a.owner_role)}, ${esc(a.urgency)})</span></li>`).join('')}</ol>
+    <p><span class="chip">Confidence ${esc(rp.confidence)}%</span>${rp.needs_human_check?'<span class="chip warn">Human should verify</span>':''}</p>`;
+    log('Diagnosis',`Root cause: ${rp.likely_causes[0]?.cause||'unclear'} (${rp.confidence}%)`);
+   }catch(e){$('#ownDxOut').innerHTML='<p class="small">Diagnosis is busy right now, please try again.</p>'}};
+ }finally{$('#ownGo').disabled=false}
+}
+$('#ownBtn').onclick=showOwn;
+
+function showTeach(){
+ t0=performance.now();$('#log').innerHTML='';
+ $('#flow').innerHTML=`<h2>🎓 Kaarigar Teaches</h2>
+ <p class="small">A short guide for a new operator, written only from this shop's SOPs and past defects (Factory Memory).</p>
+ <p><select id="tM"><option value="M1">M1 · CNC Lathe 1</option><option value="M2">M2 · CNC Lathe 2</option><option value="M3">M3 · Gear Hobbing</option>
+ <option value="M4">M4 · Shaping</option><option value="M5">M5 · Band Saw</option><option value="IN">Incoming material check</option></select>
+ <select id="tL"><option value="en-IN">English</option><option value="kn-IN">ಕನ್ನಡ</option><option value="hi-IN">हिन्दी</option><option value="te-IN">తెలుగు</option></select>
+ <button class="primary" id="tGo">Prepare guide</button></p><div id="tOut"></div>`;
+ $('#tGo').onclick=runTeach;
+}
+async function runTeach(){
+ $('#tGo').disabled=true;$('#tOut').innerHTML='<span class="spinner"></span><span class="small">Preparing the guide…</span>';
+ log('Kaarigar','Teaching: reading SOPs and this machine\'s past defects');
+ try{
+  const d=await api(`/api/teach/${$('#tM').value}`,{method:'POST'});
+  if(d.status!=='success'){$('#tOut').innerHTML=`<p class="small">${esc(d.message||'Could not prepare the guide')}</p>`;return}
+  const L=d.lesson,li=a=>`<ul>${a.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`;
+  $('#tOut').innerHTML=`<h2>${esc(L.title)}</h2>
+  <p><b>✅ A good part looks like</b></p>${li(L.good_part_looks_like)}
+  <p><b>🔧 Check before you start</b></p>${li(L.check_before_start)}
+  <p><b>👂 Watch while it runs</b></p>${li(L.watch_during_run)}
+  <p><b>⚠️ Mistakes made here before</b></p>${li(L.common_mistakes)}
+  <div class="banner">🛑 ${esc(L.stop_and_call)}</div>
+  <p class="small">Sources: ${esc(d.sources.sops.join(', '))} · past defects ${esc(d.sources.past_defects.join(', ')||'none')}${d.unsupported_points_removed?` · ${d.unsupported_points_removed} unsupported point(s) removed`:''}</p>
+  <button id="tSpk">🔊 Listen</button>`;
+  tool('Kaarigar','teach',`${d.machine_id}: built from ${d.sources.sops.length} SOPs + ${d.sources.past_defects.length} past defects (citations checked in code)`);
+  const text=[L.title,'A good part:',...L.good_part_looks_like,'Before you start:',...L.check_before_start,'While it runs:',...L.watch_during_run,L.stop_and_call].join('. ');
+  $('#tSpk').onclick=()=>speak(text,$('#tL').value);
+ }catch(e){$('#tOut').innerHTML='<p class="small">The guide service is busy right now, please try again.</p>'}
+ finally{$('#tGo').disabled=false}
+}
+$('#teachBtn').onclick=showTeach;
 loadParts();loadFactory();showMap();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
 </script><script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";

@@ -245,20 +245,46 @@ class SpeakRequest(BaseModel):
     text: str
     language_code: str = "en-IN"
 
+_VOICE_CACHE: dict = {}
+
+
+def _best_voice(lang: str):
+    """Most natural available voice for the language: Chirp3-HD > Neural2 > Wavenet > Standard."""
+    if lang in _VOICE_CACHE:
+        return _VOICE_CACHE[lang]
+    from google.cloud import texttospeech
+    name = None
+    try:
+        names = [v.name for v in texttospeech.TextToSpeechClient().list_voices(language_code=lang).voices]
+        for tier in ("Chirp3-HD", "Neural2", "Wavenet", "Standard"):
+            m = sorted(n for n in names if tier in n)
+            if m:
+                name = m[0]; break
+    except Exception:
+        pass
+    _VOICE_CACHE[lang] = name
+    return name
+
+
 @app.post("/api/speak")
 def speak(req: SpeakRequest):
     from google.cloud import texttospeech
     lang = req.language_code if req.language_code in TTS_LANGS else "en-IN"
-    text = req.text[:1200]
+    text = req.text[:1500]
     try:
         if lang != "en-IN":
             text = gemini_client().models.generate_content(
                 model=GEMINI_MODEL,
-                contents=[f"Translate for a factory supervisor into simple spoken language ({lang}). "
-                          f"Keep machine IDs like M1 and numbers unchanged. Output only the translation:\n{text}"]).text
+                contents=[f"Rewrite this for a senior machinist speaking to a new operator, in natural spoken language ({lang}). "
+                          "Short, simple sentences. Keep common shop-floor words in English as workers say them "
+                          "(machine, spindle, chuck, coolant, insert, vibration). Say numbers and units as words. "
+                          "No bullet points, symbols or brackets. Output only the spoken text:\n" + text]).text
+            text = text[:1600]
+        name = _best_voice(lang)
+        voice = (texttospeech.VoiceSelectionParams(language_code=lang, name=name) if name
+                 else texttospeech.VoiceSelectionParams(language_code=lang))
         audio = texttospeech.TextToSpeechClient().synthesize_speech(
-            input=texttospeech.SynthesisInput(text=text),
-            voice=texttospeech.VoiceSelectionParams(language_code=lang),
+            input=texttospeech.SynthesisInput(text=text), voice=voice,
             audio_config=texttospeech.AudioConfig(audio_encoding=texttospeech.AudioEncoding.MP3)).audio_content
     except Exception as e:
         raise HTTPException(503, f"Speech is unavailable right now ({type(e).__name__})")
@@ -425,7 +451,7 @@ LIVE_RULES = [
     (r"^/api/inspect/([^/]+)$", "inspect"),
     (r"^/api/diagnose/([^/]+)$", "diagnose"),
     (r"^/api/diagnose-report$", None), (r"^/api/voice$", None), (r"^/api/speak$", None),
-    (r"^/api/measure$", None), (r"^/api/work-orders/[^/]+/sop-change$", None),
+    (r"^/api/measure$", None), (r"^/api/inspect-upload$", None), (r"^/api/teach/[^/]+$", None), (r"^/api/work-orders/[^/]+/sop-change$", None),
     (r"^/api/work-orders/[^/]+$", None),          # create work order + 8D draft
 ]
 
@@ -478,6 +504,127 @@ async def live_budget(request, call_next):
             q.append(now)
             break
     return await call_next(request)
+
+
+# ---------------- Impact counter: counted from real stored data (no estimates) ----------------
+@app.get("/api/impact")
+def impact():
+    def safe_list(c):
+        try:
+            return act.STORE.list(c)
+        except Exception:
+            return []
+    wos = safe_list("work_orders")
+    calls = 0
+    try:
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        d = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%Y%m%d")
+        if os.environ.get("KAARIGAR_STORE") == "firestore":
+            from google.cloud import firestore
+            calls = int((firestore.Client().collection("usage").document(d).get().to_dict() or {}).get("live_calls", 0))
+        else:
+            calls = _day_local["n"] if _day_local["d"] == d else 0
+    except Exception:
+        pass
+    return {
+        "defects_caught": len(wos),
+        "repeat_problems": sum(1 for w in wos if w.get("recurrence")),
+        "fixes_verified": sum(1 for w in wos if w.get("status") == "closed"),
+        "reopened": sum(1 for w in wos if w.get("status") == "reopened"),
+        "lessons_learned": len(safe_list("factory_memory")),
+        "sop_improvements": sum(1 for c in safe_list("sop_changes") if c.get("status") == "approved"),
+        "live_ai_calls_today": calls,
+        "est_ai_cost_today_inr": round(calls * 0.6),      # measured avg ~₹0.3-0.8 per live call
+    }
+
+
+# ---------------- Supplier scorecard (rules in code, from Factory Memory) ----------------
+@app.get("/api/suppliers")
+def suppliers():
+    from datetime import date
+    from agents.diagnosis import _past
+    today, rows = date.today(), {}
+    for r in _past():
+        if not r.get("supplier"):
+            continue
+        d = rows.setdefault(r["supplier"], {"supplier": r["supplier"], "material_issues": 0, "last_30_days": 0,
+                                            "batches": {}, "types": {}})
+        if r.get("category_6m") != "Material":
+            continue                                  # listed, but only material problems count
+        d["material_issues"] += 1
+        try:
+            if (today - date.fromisoformat(r["date"])).days <= 30:
+                d["last_30_days"] += 1
+        except Exception:
+            pass
+        b = r.get("batch") or "?"
+        d["batches"][b] = d["batches"].get(b, 0) + 1
+        d["types"][r["defect_type"]] = d["types"].get(r["defect_type"], 0) + 1
+    out = []
+    for d in rows.values():
+        repeat = sorted(b for b, n in d["batches"].items() if n >= 2)
+        rating = ("C · action (SCAR)" if (d["last_30_days"] >= 3 or repeat)
+                  else "B · watch" if d["last_30_days"] >= 1 else "A · good")
+        out.append({"supplier": d["supplier"], "material_issues": d["material_issues"],
+                    "last_30_days": d["last_30_days"], "repeat_batches": repeat,
+                    "top_defects": sorted(d["types"], key=d["types"].get, reverse=True)[:3], "rating": rating})
+    out.sort(key=lambda x: (-x["last_30_days"], -x["material_issues"]))
+    return {"suppliers": out,
+            "rule": "Rated in code: C if 3+ material problems in 30 days or a repeat batch; B if any in 30 days; else A",
+            "data_note": "Past records are SYNTHETIC samples; learned cases are added as Kaarigar is used"}
+
+
+# ---------------- Inspect your own part (guided capture + photo-quality gate in code) ----------------
+def _photo_quality(jpeg: bytes) -> dict:
+    """Cheap checks in code BEFORE any Gemini call: exposure and sharpness."""
+    import io
+    from PIL import Image, ImageFilter, ImageStat
+    g = Image.open(io.BytesIO(jpeg)).convert("L")
+    g.thumbnail((800, 800))
+    brightness = ImageStat.Stat(g).mean[0]
+    sharpness = ImageStat.Stat(g.filter(ImageFilter.FIND_EDGES)).var[0]
+    issues = []
+    if brightness < 35:
+        issues.append("too dark: add light")
+    if brightness > 235:
+        issues.append("too bright / glare: avoid direct light")
+    if sharpness < 8:
+        issues.append("blurry: hold steady and tap to focus")
+    return {"brightness": round(brightness), "sharpness": round(sharpness, 1), "issues": issues}
+
+
+@app.post("/api/inspect-upload")
+async def inspect_upload(golden: UploadFile = File(...), test: UploadFile = File(...), machine_id: str = Form("IN")):
+    import uuid
+    g_raw, t_raw = await golden.read(), await test.read()
+    if not g_raw or not t_raw or max(len(g_raw), len(t_raw)) > 15_000_000:
+        raise HTTPException(413, "Please add both photos (each under 15 MB).")
+    g, _ = _normalize_photo(g_raw)
+    t, _ = _normalize_photo(t_raw)
+    q = {"golden": _photo_quality(g), "test": _photo_quality(t)}
+    if q["golden"]["issues"] or q["test"]["issues"]:
+        return {"verdict": "retake_photo", "quality": q}
+    pid = f"upload_{uuid.uuid4().hex[:8]}"
+    d = Path(os.environ.get("KAARIGAR_PAIRS_DIR", "data/pairs")) / pid
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "golden.jpg").write_bytes(g)
+    (d / "test.jpg").write_bytes(t)
+    try:
+        ins = run_inspection(pid)
+    except Exception as e:
+        raise HTTPException(503, f"Inspection service is busy, please try again ({type(e).__name__})")
+    return {"verdict": "inspected", "part_id": pid, "machine_id": machine_id, "inspection": ins, "quality": q}
+
+
+# ---------------- Kaarigar Teaches: new-operator guide from SOPs + Factory Memory ----------------
+@app.post("/api/teach/{machine_id}")
+def teach_machine(machine_id: str):
+    from agents.teach import teach
+    try:
+        return teach(machine_id)
+    except Exception as e:
+        raise HTTPException(503, f"Could not prepare the guide, please try again ({type(e).__name__})")
 
 if STATIC.exists():
     app.mount("/", StaticFiles(directory=STATIC, html=True), name="static")

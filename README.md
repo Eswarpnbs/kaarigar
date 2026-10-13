@@ -24,7 +24,7 @@ Press **▶ Try the demo** (machine story) or **▶ Real factory part (Peenya)**
 | **Verify** | Schedules a re-check after the fix | Code |
 | **Predict** | Forecasts machine vibration and the hours left before the ISO damage zone | **BigQuery ML** (ARIMA_PLUS); Gemini only explains |
 
-**Also:** 🎙 voice reports in Telugu / Kannada / Hindi / English with spoken answers in the worker's language ·
+**Also:** 📷 inspect your own part (guided capture + photo-quality gate in code) · 🏷️ supplier scorecard (rules in code) · 📲 installable phone app (PWA) · EN/ಕನ್ನಡ/हिन्दी/తెలుగు interface · 🎙 voice reports in Telugu / Kannada / Hindi / English with spoken answers in the worker's language ·
 📏 caliper check (photo of the display → OK / NOT OK against tolerance) · 🏭 Live Factory Map.
 
 ## Design principles
@@ -32,6 +32,8 @@ Press **▶ Try the demo** (machine story) or **▶ Real factory part (Peenya)**
   are deterministic. Gemini reads, reasons and writes — it never decides a number.
 - **AI informs, humans decide.** Nothing is approved without a supervisor, verified by Firebase Authentication and recorded in Firestore (who, when).
 - **Safety first.** A missed defect is worse than a false alarm; when unsure, Kaarigar asks for a retake or a human check.
+- **Two looks, two readers.** A flagged part gets an independent second look (disagreement → "please check by eye"); caliper readings are cross-checked by Cloud Vision OCR at the display position (disagreement → retake).
+- **Protected live demo.** A budget guard limits paid AI calls (per visitor and per day, counted in Firestore); cached demo paths stay free.
 - **Calibrated confidence.** Thin evidence (no machine signal, fewer than 2 similar cases, no recurrence) caps confidence at 70% and requires a human check.
 - **Honest data.** Machine sensor data is **SIMULATED**; past defect records and SOPs are **SYNTHETIC samples**. Every screen says so.
 

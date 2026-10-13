@@ -337,6 +337,15 @@ def run_inspection(part_id: str) -> dict:
     if not golden or not test:
         raise FileNotFoundError(f"Images missing for {part_id}")
     data = inspect(golden, test).model_dump()
+    if data.get("defect_found") and os.environ.get("KAARIGAR_CONSISTENCY", "0") == "1":
+        second = inspect(golden, test).model_dump()           # independent second look
+        if not second.get("defect_found"):
+            data["recommendation"] = "human_check"
+            data["confidence"] = min(int(data.get("confidence", 50)), 60)
+            data["notes"] = (str(data.get("notes", "")) + " | Second independent check found no defect: please check by eye.").strip(" |")
+            data["consistency"] = "disagree"
+        else:
+            data["consistency"] = "agree"
     CACHE.mkdir(parents=True, exist_ok=True)
     (CACHE / f"{part_id}.json").write_text(json.dumps(data, indent=2))
     return data
