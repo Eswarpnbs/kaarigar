@@ -1,0 +1,45 @@
+{
+  "per_inspection_usd": 0.0048,
+  "per_inspection_inr": 0.46,
+  "full_defect_case_inr": 1.84,
+  "month_100_inspections_per_day_5_defect_cases_inr": 1366.0,
+  "inr_per_usd_assumed": 95.08,
+  "rows": [
+    {
+      "stage": "Inspect: good part (heaviest)",
+      "calls": 2,
+      "input_tokens": 3640,
+      "output_tokens": 785,
+      "usd": 0.00305,
+      "inr": 0.29,
+      "seconds": 11.5
+    },
+    {
+      "stage": "Inspect: defective part",
+      "calls": 2,
+      "input_tokens": 2671,
+      "output_tokens": 1599,
+      "usd": 0.0048,
+      "inr": 0.456,
+      "seconds": 263.9
+    },
+    {
+      "stage": "Diagnose (root cause, 5 Whys)",
+      "calls": 1,
+      "input_tokens": 2966,
+      "output_tokens": 2838,
+      "usd": 0.00798,
+      "inr": 0.759,
+      "seconds": 95.6
+    },
+    {
+      "stage": "Act (work order + 8D draft)",
+      "calls": 1,
+      "input_tokens": 2646,
+      "output_tokens": 2294,
+      "usd": 0.00653,
+      "inr": 0.621,
+      "seconds": 27.9
+    }
+  ]
+}
