@@ -8,7 +8,8 @@ and prevent them — using a phone instead of expensive inspection systems.
 > "We didn't invent golden samples. We found them taped to a factory wall in Bengaluru.
 > Kaarigar turns that wall into an AI inspector."
 
-🌐 **Live demo:** https://kaarigar-1092998207528.asia-south1.run.app
+🌐 **Live demo:** https://kaarigar-510716.web.app (Firebase Hosting → Cloud Run)  
+Backup link: https://kaarigar-1092998207528.asia-south1.run.app
 Press **▶ Try the demo** (machine story) or **▶ Real factory part (Peenya)** (real photo, supplier story).
 
 ---
@@ -29,7 +30,7 @@ Press **▶ Try the demo** (machine story) or **▶ Real factory part (Peenya)**
 ## Design principles
 - **Compute in code, LLM explains.** Locations, priorities, tolerances, recurrence, forecasts and confidence caps
   are deterministic. Gemini reads, reasons and writes — it never decides a number.
-- **AI informs, humans decide.** Nothing is approved without a supervisor.
+- **AI informs, humans decide.** Nothing is approved without a supervisor, verified by Firebase Authentication and recorded in Firestore (who, when).
 - **Safety first.** A missed defect is worse than a false alarm; when unsure, Kaarigar asks for a retake or a human check.
 - **Calibrated confidence.** Thin evidence (no machine signal, fewer than 2 similar cases, no recurrence) caps confidence at 70% and requires a human check.
 - **Honest data.** Machine sensor data is **SIMULATED**; past defect records and SOPs are **SYNTHETIC samples**. Every screen says so.
