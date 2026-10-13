@@ -306,5 +306,33 @@ async def measure(image: UploadFile = File(...), nominal: float = Form(...), tol
             "margin_mm": margin, "near_limit": near, "reading": r.model_dump(),
             "decided_by": "code (Gemini only reads the digits)"}
 
+
+# ---------------- Verify: re-check after the fix (decided in code) ----------------
+class VerifyRequest(BaseModel):
+    next_part_id: str
+    vibration_mm_s: float
+
+
+@app.post("/api/work-orders/{wo_id}/verify")
+def verify_fix(wo_id: str, v: VerifyRequest, authorization: str | None = Header(default=None)):
+    claims = _verify_supervisor(authorization)
+    cache = INSPECTION_CACHE / f"{v.next_part_id}.json"
+    try:
+        ins = json.loads(cache.read_text()) if cache.exists() else run_inspection(v.next_part_id)
+    except FileNotFoundError:
+        raise HTTPException(404, f"Part {v.next_part_id} not found")
+    except Exception as e:
+        raise HTTPException(503, f"Inspection service is busy, please try again ({type(e).__name__})")
+    part_ok = not ins.get("defect_found")
+    vib_ok = v.vibration_mm_s < 2.8          # ISO 10816-3 zones A/B = acceptable
+    passed = part_ok and vib_ok
+    note = (f"Next part {v.next_part_id}: {'no defect' if part_ok else 'DEFECT found'}; "
+            f"vibration {v.vibration_mm_s} mm/s ({'acceptable, zone A/B' if vib_ok else 'still zone C/D'}). "
+            f"Checked by supervisor uid {claims['uid'][:8]}… (Firebase Auth).")
+    res = act.record_verification(wo_id, passed, note)
+    if res.get("status") != "success":
+        raise HTTPException(400, res.get("message", "Could not record the re-check"))
+    return {**res, "part_ok": part_ok, "vibration_ok": vib_ok, "passed": passed}
+
 if STATIC.exists():
     app.mount("/", StaticFiles(directory=STATIC, html=True), name="static")

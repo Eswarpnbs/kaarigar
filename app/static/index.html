@@ -123,9 +123,12 @@ async function decide(woId,approve){
  const wo=(await resp.json()).work_order;
  tool('Action','approval_gate',`verified by Firebase Auth → ${wo.approval.by}`);
  log('Supervisor',approve?`Approved ${woId}`:`Rejected ${woId}`);
- done(el,approve?`<p><span class="chip ok">Approved by supervisor</span> <span class="small">${esc(wo.approval.by)} · ${esc(wo.approval.at)}</span></p><p>Verification due by ${esc(wo.verification.due_by)}: ${esc(wo.verification.plan)}</p>`
+ done(el,approve?`<p><span class="chip ok">Approved by supervisor</span> <span class="small">${esc(wo.approval.by)} · ${esc(wo.approval.at)}</span></p><p>Verification due by ${esc(wo.verification.due_by)}: ${esc(wo.verification.plan)}</p><div id="vf"><p class="small">After the fix: inspect the next part and enter the vibration measured after the repair.</p>
+ <p><select id="vfPart"><option value="metal_nut_good_1">Next part: metal_nut_good_1</option><option value="metal_nut_scratch_0">Next part: metal_nut_scratch_0 (still scratched)</option></select>
+ Vibration <input id="vfVib" type="number" step="0.01" value="1.90" style="width:70px"> mm/s <button class="ok" id="vfBtn">Run re-check</button></p><div id="vfOut"></div></div>`
   :`<p><span class="chip bad">Rejected</span> No action taken. The diagnosis stays on record for review.</p>`);
  if(approve)log('Kaarigar','Re-check scheduled: Detect → Diagnose → Act → Verify');
+ if(approve)$('#vfBtn').onclick=()=>verify(woId);
 }
 $('#demoBtn').onclick=()=>run('metal_nut_scratch_0');
 $('#realBtn').onclick=()=>run('real_bar_rust_0');
@@ -253,6 +256,21 @@ async function runMeasure(){
  }finally{$('#calGo').disabled=false}
 }
 $('#calBtn').onclick=showMeasure;
+
+async function verify(woId){
+ $('#vfBtn').disabled=true;$('#vfOut').innerHTML='<span class="spinner"></span><span class="small">Re-checking…</span>';
+ log('Inspector','Re-check: inspecting the next part after the fix');
+ const tok=await window.kAuth.token();
+ const r=await fetch(`/api/work-orders/${woId}/verify`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},
+   body:JSON.stringify({next_part_id:$('#vfPart').value,vibration_mm_s:parseFloat($('#vfVib').value)})});
+ if(!r.ok){$('#vfOut').innerHTML=`<p class="small">${esc(await r.text())}</p>`;$('#vfBtn').disabled=false;return}
+ const v=await r.json();const wo=v.work_order;
+ $('#vfOut').innerHTML=v.passed
+  ?`<p><span class="chip ok">Verified · work order CLOSED</span></p><p class="small">${esc(wo.verification.result)}</p>`
+  :`<p><span class="chip bad">Re-check FAILED · work order REOPENED</span></p><p class="small">${esc(wo.verification.result)} The fix did not work, so a deeper root cause is needed.</p>`;
+ tool('Inspector','verify',`part ${v.part_ok?'OK':'defect'} · vibration ${v.vibration_ok?'acceptable':'still high'} → ${v.passed?'closed':'reopened'} (decided in code)`);
+ log('Kaarigar',v.passed?'Loop closed: Detect → Diagnose → Act → Verify ✓':'Fix failed: work order reopened');
+}
 loadParts();loadFactory();showMap();
 </script><script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
