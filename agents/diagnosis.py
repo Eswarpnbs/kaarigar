@@ -105,8 +105,18 @@ EVIDENCE (JSON):
 
 # ---------------- Evidence helpers (deterministic) ----------------
 @lru_cache(maxsize=1)
-def _past() -> list:
+def _seed_past() -> list:
     return json.loads((SEED / "past_defects.json").read_text())
+
+
+def _past() -> list:
+    """Seed records + cases Kaarigar has learned from verified fixes (Learn step)."""
+    try:
+        from agents.memory import learned_cases
+        learned = [{k: v for k, v in r.items() if k != "vector"} for r in learned_cases()]
+    except Exception:
+        learned = []
+    return _seed_past() + learned
 
 
 @lru_cache(maxsize=1)

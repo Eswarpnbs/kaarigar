@@ -332,7 +332,14 @@ def verify_fix(wo_id: str, v: VerifyRequest, authorization: str | None = Header(
     res = act.record_verification(wo_id, passed, note)
     if res.get("status") != "success":
         raise HTTPException(400, res.get("message", "Could not record the re-check"))
-    return {**res, "part_ok": part_ok, "vibration_ok": vib_ok, "passed": passed}
+    learned = None
+    if passed:
+        try:
+            from agents.memory import learn_from_work_order
+            learned = learn_from_work_order(res["work_order"])
+        except Exception as e:
+            learned = {"error": type(e).__name__}
+    return {**res, "part_ok": part_ok, "vibration_ok": vib_ok, "passed": passed, "learned": learned}
 
 if STATIC.exists():
     app.mount("/", StaticFiles(directory=STATIC, html=True), name="static")

@@ -266,10 +266,11 @@ async function verify(woId){
  if(!r.ok){$('#vfOut').innerHTML=`<p class="small">${esc(await r.text())}</p>`;$('#vfBtn').disabled=false;return}
  const v=await r.json();const wo=v.work_order;
  $('#vfOut').innerHTML=v.passed
-  ?`<p><span class="chip ok">Verified · work order CLOSED</span></p><p class="small">${esc(wo.verification.result)}</p>`
+  ?`<p><span class="chip ok">Verified · work order CLOSED</span></p><p class="small">${esc(wo.verification.result)}</p>${v.learned&&v.learned.defect_id?`<p class="small">🧠 <b>Learn:</b> this verified fix is now in Factory Memory (${esc(v.learned.defect_id)}, confirmed ${esc(v.learned.times_confirmed)}×). Future diagnoses will use it.</p>`:''}`
   :`<p><span class="chip bad">Re-check FAILED · work order REOPENED</span></p><p class="small">${esc(wo.verification.result)} The fix did not work, so a deeper root cause is needed.</p>`;
  tool('Inspector','verify',`part ${v.part_ok?'OK':'defect'} · vibration ${v.vibration_ok?'acceptable':'still high'} → ${v.passed?'closed':'reopened'} (decided in code)`);
  log('Kaarigar',v.passed?'Loop closed: Detect → Diagnose → Act → Verify ✓':'Fix failed: work order reopened');
+ if(v.learned&&v.learned.defect_id)tool('Kaarigar','learn',`Factory Memory += ${v.learned.defect_id} (confirmed ${v.learned.times_confirmed}×)`);
 }
 loadParts();loadFactory();showMap();
 </script><script type="module">

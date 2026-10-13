@@ -61,7 +61,8 @@ def _cos(a, b) -> float:
 
 def semantic_search(query: str, k: int = 3, min_score: float = 0.6) -> list:
     """Returns [(defect_id, cosine_score)] for the most similar past defects (computed in code)."""
-    idx = _index()
+    idx = dict(_index())
+    idx.update({r['defect_id']: r['vector'] for r in learned_cases() if r.get('vector')})
     if not idx:
         return []
     try:
@@ -71,6 +72,54 @@ def semantic_search(query: str, k: int = 3, min_score: float = 0.6) -> list:
     scored = sorted(((_cos(q, v), did) for did, v in idx.items()), reverse=True)
     return [(did, round(s, 3)) for s, did in scored[:k] if s >= min_score]
 
+
+
+# ---------------- Learn: verified fixes become Factory Memory ----------------
+import re
+import time as _time
+from datetime import date as _date
+
+_learned_cache = {"t": 0.0, "rows": []}
+
+
+def learned_cases() -> list:
+    """Cases learned from verified fixes (Firestore or local store), cached 30 s."""
+    if _time.time() - _learned_cache["t"] < 30:
+        return _learned_cache["rows"]
+    try:
+        from agents.action import STORE
+        rows = STORE.list("factory_memory")
+    except Exception:
+        rows = []
+    _learned_cache.update(t=_time.time(), rows=rows)
+    return rows
+
+
+def learn_from_work_order(wo: dict) -> dict:
+    """Turn a CLOSED (verified) work order into a Factory Memory record. One record per
+    machine + defect + product; repeated confirmations increment times_confirmed."""
+    from agents.action import STORE
+    slug = re.sub(r"[^A-Za-z0-9]+", "-", wo.get("product", "part")).strip("-")[:40]
+    key = f"L-{wo.get('machine_id', 'NA')}-{wo['defect']['type']}-{slug}"
+    existing = STORE.get("factory_memory", key) or {}
+    rec = {
+        "defect_id": key, "date": _date.today().isoformat(), "machine_id": wo.get("machine_id", ""),
+        "product": wo.get("product", ""), "defect_type": wo["defect"]["type"], "severity": wo["defect"]["severity"],
+        "description": wo["defect"]["description"], "root_cause": wo.get("root_cause", ""),
+        "category_6m": wo.get("category_6m") or "Machine",
+        "fix": "; ".join(t["action"] for t in wo.get("tasks", []))[:500],
+        "fix_verified": True, "supplier": wo.get("supplier", ""), "batch": wo.get("batch", ""),
+        "downtime_hours": 0, "scrap_qty": 0, "synthetic": False,
+        "source": f"learned from verified work order {wo['wo_id']}",
+        "times_confirmed": int(existing.get("times_confirmed", 0)) + 1,
+    }
+    try:
+        rec["vector"] = embed([record_text(rec)], "RETRIEVAL_DOCUMENT")[0]
+    except Exception:
+        rec["vector"] = existing.get("vector")
+    STORE.put("factory_memory", key, rec)
+    _learned_cache["t"] = 0.0      # refresh on next read
+    return {"defect_id": key, "times_confirmed": rec["times_confirmed"]}
 
 if __name__ == "__main__":
     import sys
