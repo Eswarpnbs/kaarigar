@@ -17,7 +17,7 @@ from typing import Dict, List
 from google.cloud import bigquery
 
 PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT", "kaarigar-510716")
-TABLE = os.environ.get("KAARIGAR_SENSOR_TABLE", f"{PROJECT}.kaarigar.sensor_readings")
+TABLE = os.environ.get("KAARIGAR_SENSOR_TABLE", f"{PROJECT}.kaarigar.sensor_all")
 BQ_LOCATION = os.environ.get("KAARIGAR_BQ_LOCATION", "asia-south1")
 MACHINES = ["M1", "M2", "M3", "M4", "M5"]
 
