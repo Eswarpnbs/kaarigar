@@ -1,0 +1,71 @@
+{
+  "data": "SIMULATED (data/sim, ground-truth episodes)",
+  "rule": "alert if forecast reaches 4.5 mm/s within 12 h",
+  "breakdowns": [
+    {
+      "episode": "EP01",
+      "machine": "M1",
+      "problem": "tool_wear",
+      "breakdown": "2026-10-08T06:00:00",
+      "first_alert": null,
+      "lead_hours": null
+    },
+    {
+      "episode": "EP05",
+      "machine": "M1",
+      "problem": "bearing_wear",
+      "breakdown": "2026-10-07T08:35:00",
+      "first_alert": "2026-10-07T07:00:00",
+      "lead_hours": 1.6
+    }
+  ],
+  "healthy_checks": [
+    {
+      "machine": "M2",
+      "at": "2026-10-05T17:00:00",
+      "alert": false
+    },
+    {
+      "machine": "M2",
+      "at": "2026-10-07T22:00:00",
+      "alert": false
+    },
+    {
+      "machine": "M2",
+      "at": "2026-10-10T11:00:00",
+      "alert": false
+    },
+    {
+      "machine": "M2",
+      "at": "2026-10-12T16:00:00",
+      "alert": false
+    },
+    {
+      "machine": "M3",
+      "at": "2026-10-05T17:00:00",
+      "alert": false
+    },
+    {
+      "machine": "M3",
+      "at": "2026-10-07T22:00:00",
+      "alert": false
+    },
+    {
+      "machine": "M3",
+      "at": "2026-10-10T11:00:00",
+      "alert": false
+    },
+    {
+      "machine": "M3",
+      "at": "2026-10-12T16:00:00",
+      "alert": false
+    }
+  ],
+  "summary": {
+    "breakdowns_warned": "1/2",
+    "lead_hours": [
+      1.6
+    ],
+    "false_alarms": "0/8"
+  }
+}
