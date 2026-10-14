@@ -760,5 +760,38 @@ def handover(lang: str = "en-IN"):
         raise HTTPException(503, f"Could not prepare the handover, please try again ({type(e).__name__})")
     return {"handover": h.model_dump(), "facts": facts}
 
+
+# ---------------- 8D report: print-ready page (Save as PDF), reuses the existing 8D content ----------------
+from fastapi.responses import HTMLResponse
+
+
+@app.get("/api/work-orders/{wo_id}/8d.html", response_class=HTMLResponse)
+def eight_d_print(wo_id: str, print: int = 0):
+    import html as _h
+    import markdown as _md
+    route = next((r for r in app.routes if getattr(r, "path", "") == "/api/work-orders/{wo_id}/8d"), None)
+    if not route:
+        raise HTTPException(404, "8D route not found")
+    res = route.endpoint(wo_id)
+    text = res.body.decode() if hasattr(res, "body") else (res if isinstance(res, str) else str(res))
+    body = _md.markdown(text, extensions=["tables"])
+    auto = "<script>window.onload=()=>setTimeout(()=>window.print(),500)</script>" if print else ""
+    return f"""<!doctype html><html><head><meta charset="utf-8"><title>8D report {_h.escape(wo_id)}</title>
+<style>
+ @page {{ size: A4; margin: 16mm; }}
+ body {{ font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; color: #111; max-width: 800px; margin: 24px auto; line-height: 1.45; }}
+ .bar {{ display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid #f59e0b; padding-bottom:8px; margin-bottom:16px; }}
+ .brand {{ font-weight:800; font-size:22px; color:#b45309; }} .meta {{ font-size:12px; color:#555; text-align:right; }}
+ h1 {{ font-size:20px; }} h2 {{ font-size:15px; border-left:4px solid #f59e0b; padding-left:8px; margin-top:18px; page-break-after:avoid; }}
+ li {{ margin:3px 0; }} .foot {{ margin-top:28px; border-top:1px solid #ccc; padding-top:8px; font-size:11px; color:#555; }}
+ .noprint {{ margin:12px 0; }} @media print {{ .noprint {{ display:none; }} }}
+</style></head><body>
+<div class="bar"><div class="brand">Kaarigar</div><div class="meta">8D Problem-Solving Report<br>{_h.escape(wo_id)}</div></div>
+<div class="noprint"><button onclick="window.print()">🖨️ Print / Save as PDF</button></div>
+{body}
+<div class="foot">AI-drafted by Kaarigar, approved by a signed-in supervisor (Firebase Authentication). Evidence and approvals are
+stored in Firestore. Prototype: machine data SIMULATED; past records SYNTHETIC.</div>
+{auto}</body></html>"""
+
 if STATIC.exists():
     app.mount("/", StaticFiles(directory=STATIC, html=True), name="static")

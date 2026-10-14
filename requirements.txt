@@ -61,3 +61,4 @@ google-cloud-texttospeech
 python-multipart
 firebase-admin
 google-cloud-vision
+markdown

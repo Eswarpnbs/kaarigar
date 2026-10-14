@@ -111,11 +111,12 @@ async function workOrder(partId){
  done(el,`<p><span class="chip bad">${esc(wo.priority)}</span><span class="chip">${esc(wo.wo_id)}</span><span class="chip warn">Pending supervisor approval</span></p>
  <h2>Containment</h2><ul>${wo.eight_d.d3_containment.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>
  <h2>Tasks</h2><ol>${wo.tasks.map(t=>`<li>${esc(t.action)} <span class="small">(${esc(t.owner_role)}, ${esc(t.urgency)}${t.sop_ref?', '+esc(t.sop_ref):''})</span></li>`).join('')}</ol>
- <p><button class="ok" id="apBtn">Approve (supervisor)</button> <button class="bad" id="rjBtn">Reject</button> <button id="d8Btn">View 8D report</button></p><div id="d8"></div>`);
+ <p><button class="ok" id="apBtn">Approve (supervisor)</button> <button class="bad" id="rjBtn">Reject</button> <button id="d8Btn">View 8D report</button> <button id="pdfBtn">📄 8D as PDF</button></p><div id="d8"></div>`);
  log('Action',`${wo.wo_id} created, ${wo.priority}. Waiting for a human decision.`);
  tool('Action','work_order',`${wo.tasks.length} tasks · priority computed in code · 8D drafted by Gemini`);
  tool('Action','approval_gate','waiting for supervisor (AI cannot approve)');
  $('#apBtn').onclick=()=>decide(wo.wo_id,true);$('#rjBtn').onclick=()=>decide(wo.wo_id,false);
+ $('#pdfBtn').onclick=()=>window.open(`/api/work-orders/${wo.wo_id}/8d.html?print=1`,'_blank');
  $('#d8Btn').onclick=async()=>{$('#d8').innerHTML=`<pre>${esc(await api(`/api/work-orders/${wo.wo_id}/8d`))}</pre>`};
 }
 async function decide(woId,approve){
@@ -504,6 +505,7 @@ const UI_DICT={
 'Approve (supervisor)':{kn:'ಅನುಮೋದಿಸಿ (ಸೂಪರ್‌ವೈಸರ್)',hi:'मंज़ूर करें (सुपरवाइज़र)',te:'ఆమోదించండి (సూపర్‌వైజర్)'},
 'Reject':{kn:'ತಿರಸ್ಕರಿಸಿ',hi:'अस्वीकार करें',te:'తిరస్కరించండి'},
 'View 8D report':{kn:'8D ವರದಿ ನೋಡಿ',hi:'8D रिपोर्ट देखें',te:'8D రిపోర్ట్ చూడండి'},
+'📄 8D as PDF':{kn:'📄 8D PDF',hi:'📄 8D PDF',te:'📄 8D PDF'},
 'Run re-check':{kn:'ಮರುಪರಿಶೀಲನೆ ಮಾಡಿ',hi:'दोबारा जांचें',te:'మళ్ళీ తనిఖీ చేయండి'},
 'Find root cause':{kn:'ಮೂಲ ಕಾರಣ ಹುಡುಕಿ',hi:'मूल कारण खोजें',te:'మూల కారణం కనుగొనండి'},
 'Prepare guide':{kn:'ಮಾರ್ಗದರ್ಶಿ ತಯಾರಿಸಿ',hi:'गाइड तैयार करें',te:'గైడ్ సిద్ధం చేయండి'},
