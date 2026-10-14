@@ -376,15 +376,17 @@ function showOwn(){
  $('#flow').innerHTML=`<h2>📷 Inspect your own part</h2>
  <div class="banner" style="background:#1d2130;border-color:#262b36;color:#e8eaed"><b>For a good result:</b> ① plain background ② the whole part in view, with a margin
  ③ the same angle and distance for both photos ④ good light, no shadows ⑤ hold steady</div>
- <p>1. A <b>good</b> part (golden sample): <input id="ownG" type="file" accept="image/*" capture="environment"></p>
- <p>2. The part to <b>check</b>: <input id="ownT" type="file" accept="image/*" capture="environment"></p>
+ <p>1. A <b>good</b> part (golden sample): <input id="ownG" type="file" accept="image/*" capture="environment"> <button id="camG">📸 Live camera</button> <span id="shotG"></span></p>
+ <p>2. The part to <b>check</b>: <input id="ownT" type="file" accept="image/*" capture="environment"> <button id="camT">📸 Live camera</button> <span id="shotT"></span></p>
  <p>3. Where it comes from: <select id="ownM"><option value="IN">Incoming material</option><option value="M1">M1 · CNC Lathe 1</option>
  <option value="M2">M2 · CNC Lathe 2</option><option value="M3">M3 · Gear Hobbing</option><option value="M4">M4 · Shaping</option><option value="M5">M5 · Band Saw</option></select></p>
  <p><button class="primary" id="ownGo">Inspect</button></p><div id="ownOut"></div>`;
+ window._shots={};$('#camG').onclick=()=>openCam('g');$('#camT').onclick=()=>openCam('t');
+ $('#ownG').onchange=()=>{delete window._shots.g;$('#shotG').innerHTML=''};$('#ownT').onchange=()=>{delete window._shots.t;$('#shotT').innerHTML=''};
  $('#ownGo').onclick=runOwn;
 }
 async function runOwn(){
- const g=$('#ownG').files[0],t=$('#ownT').files[0];if(!g||!t){alert('Please add both photos');return}
+ const g=(window._shots&&window._shots.g)||$('#ownG').files[0],t=(window._shots&&window._shots.t)||$('#ownT').files[0];if(!g||!t){alert('Please add both photos');return}
  $('#ownGo').disabled=true;$('#ownOut').innerHTML='<span class="spinner"></span><span class="small">Checking photo quality, then inspecting (usually ~30 s)…</span>';
  log('Inspector','Checking photo quality (in code), then comparing with your golden sample');
  const fd=new FormData();fd.append('golden',g);fd.append('test',t);fd.append('machine_id',$('#ownM').value);
@@ -743,4 +745,5 @@ onAuthStateChanged(auth, u => {
          document.getElementById('siBtn').onclick = e => { e.preventDefault(); window.kAuth.signIn() }; }
 });
 </script>
+<script src="/camera.js"></script>
 </body></html>
