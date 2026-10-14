@@ -213,6 +213,8 @@ def diagnose(machine_id: str, defect_type: str, description: str, product: str =
             evidence[f"machine_health:{machine_id}"] = mh
             valid.add(f"machine_health:{machine_id}")
             hints = [h["problem"] for h in mh.get("pattern_hints", [])]
+            if hints:
+                valid.add("pattern_hints")          # hints are computed in code from the machine data
             try:
                 from agents.tools.forecast import forecast_machine
                 fc = forecast_machine(machine_id)
