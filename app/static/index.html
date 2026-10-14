@@ -46,7 +46,8 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:16px}
 <button id="supBtn" style="width:100%;margin-bottom:8px">🏷️ Supplier scorecard</button>
 <button id="ownBtn" class="primary" style="width:100%;margin-bottom:8px">📷 Inspect your own part</button>
 <button id="teachBtn" style="width:100%;margin-bottom:8px">🎓 Kaarigar Teaches (new operator)</button>
-<button id="hoBtn" style="width:100%;margin-bottom:12px">🌅 Shift handover</button>
+<button id="hoBtn" style="width:100%;margin-bottom:8px">🌅 Shift handover</button>
+<button id="alertBtn" style="width:100%;margin-bottom:12px">📳 Phone alerts</button>
 <h2>Parts</h2><div id="parts"></div><h2 style="margin-top:16px">Factory (live)</h2><div id="factory" class="small">Loading…</div></section>
 <section class="card"><div id="flow"><p class="small">Pick a part or press <b>Try the demo</b>. Kaarigar inspects it against golden samples, finds the root cause, and drafts a work order for a supervisor to approve.</p></div></section>
 <section class="card"><h2>Agent reasoning</h2><div id="log" class="log"><div class="small">Each step the agents take appears here.</div></div></section>
@@ -482,6 +483,7 @@ const UI_DICT={
 '📷 Inspect your own part':{kn:'📷 ನಿಮ್ಮ ಭಾಗವನ್ನು ಪರಿಶೀಲಿಸಿ',hi:'📷 अपना पार्ट जांचें',te:'📷 మీ భాగాన్ని తనిఖీ చేయండి'},
 '🎓 Kaarigar Teaches (new operator)':{kn:'🎓 ಕಾರಿಗರ್ ಕಲಿಸುತ್ತದೆ (ಹೊಸ ಆಪರೇಟರ್)',hi:'🎓 कारीगर सिखाता है (नया ऑपरेटर)',te:'🎓 కారిగర్ నేర్పిస్తుంది (కొత్త ఆపరేటర్)'},
 '🌅 Shift handover':{kn:'🌅 ಶಿಫ್ಟ್ ಹಸ್ತಾಂತರ',hi:'🌅 शिफ्ट हैंडओवर',te:'🌅 షిఫ్ట్ హ్యాండోవర్'},
+'📳 Phone alerts':{kn:'📳 ಫೋನ್ ಎಚ್ಚರಿಕೆಗಳು',hi:'📳 फ़ोन अलर्ट',te:'📳 ఫోన్ హెచ్చరికలు'},
 'Parts':{kn:'ಭಾಗಗಳು',hi:'पार्ट्स',te:'భాగాలు'},
 'Factory (live)':{kn:'ಕಾರ್ಖಾನೆ (ಲೈವ್)',hi:'फ़ैक्टरी (लाइव)',te:'ఫ్యాక్టరీ (లైవ్)'},
 'Agent reasoning':{kn:'ಏಜೆಂಟ್ ತರ್ಕ',hi:'एजेंट की सोच',te:'ఏజెంట్ ఆలోచన'},
@@ -586,12 +588,51 @@ new MutationObserver(ms=>{if(LANG==='en')return;
  .observe(document.querySelector('main'),{childList:true,subtree:true});
 function setLang(l){LANG=l;try{localStorage.setItem('kLang',l)}catch(e){};$('#lang').value=l;translatePage()}
 $('#lang').value=LANG;$('#lang').onchange=()=>setLang($('#lang').value);
+
+function showAlerts(){
+ t0=performance.now();$('#log').innerHTML='';
+ $('#flow').innerHTML=`<h2>📳 Phone alerts</h2>
+ <p class="small">When the BigQuery ML forecast says a machine will reach the damage zone within 12 hours, Kaarigar alerts the supervisor's phone through Firebase Cloud Messaging (once per machine per day; the rule is computed in code).</p>
+ <p><button class="primary" id="alEn">1. Enable alerts on this device</button></p>
+ <p><button id="alGo">2. Check the forecast and alert now</button></p><div id="alOut"></div>
+ <p class="small">Works in Android Chrome and desktop browsers. On iPhone: Add to Home Screen first (iOS 16.4+).</p>`;
+ $('#alEn').onclick=enableAlerts;$('#alGo').onclick=checkAlerts;
+}
+async function ensureSignedIn(){
+ if(!window.kAuth||!window.kAuth.user){
+  if(!confirm('Alerts are for a signed-in supervisor. Sign in as the demo supervisor?'))return false;
+  await window.kAuth.signIn();log('Firebase Auth','Signed in as demo supervisor')}
+ return true}
+async function enableAlerts(){
+ if(!(await ensureSignedIn()))return;$('#alOut').innerHTML='<span class="spinner"></span>';
+ try{const token=await window.kPush.enable();const tok=await window.kAuth.token();
+  const r=await fetch('/api/alerts/subscribe',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({token})});
+  const d=await r.json();if(!r.ok)throw new Error(d.detail||'Could not register this device');
+  $('#alOut').innerHTML=`<p><span class="chip ok">Alerts enabled on this device</span> <span class="small">${esc(d.devices)} device(s) registered</span></p>`;
+  tool('Kaarigar','fcm_subscribe','device registered (Firestore)');
+ }catch(e){$('#alOut').innerHTML=`<p class="small">${esc(e.message||e)}</p>`}}
+async function checkAlerts(){
+ if(!(await ensureSignedIn()))return;$('#alOut').innerHTML='<span class="spinner"></span>';
+ try{const tok=await window.kAuth.token();
+  const r=await fetch('/api/alerts/check?force=true',{method:'POST',headers:{'Authorization':'Bearer '+tok}});
+  const d=await r.json();if(!r.ok)throw new Error(d.detail||'Check failed');
+  $('#alOut').innerHTML=`<p>${d.at_risk.length?d.at_risk.map(a=>`<span class="chip bad">${esc(a.machine)}: damage zone in ~${esc(Math.round(a.hours_to_damage_zone))} h</span>`).join(''):'<span class="chip ok">No machine at risk in the next 12 h</span>'}</p>
+  <p class="small">Alerts sent: ${esc(d.sent)} to ${esc(d.devices)} device(s).${d.errors&&d.errors.length?' Errors: '+esc(d.errors.join(', ')):''}</p>`;
+  tool('Kaarigar','fcm_send',`${d.sent} alert(s) sent · rule in code: damage zone within 12 h`);
+ }catch(e){$('#alOut').innerHTML=`<p class="small">${esc(e.message||e)}</p>`}}
+window.showAlertBanner=(title,body)=>{
+ const b=document.createElement('div');b.className='banner';
+ b.style.cssText='position:fixed;top:12px;right:12px;z-index:99;max-width:360px;background:#3a1d1d;border-color:#7f1d1d;color:#fecaca';
+ b.textContent=`${title} | ${body}`;document.body.appendChild(b);setTimeout(()=>b.remove(),8000);
+ log('Kaarigar','Phone alert received: '+title)};
+$('#alertBtn').onclick=showAlerts;
 loadParts();loadFactory();showMap();
 setTimeout(translatePage,300);
 if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
 </script><script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getMessaging, getToken, onMessage, isSupported } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
 const app = initializeApp({
   apiKey: "AIzaSyCtBfoI2roXMXa-8dHGofdgPijgBDMlwT0",
   authDomain: "kaarigar-510716.firebaseapp.com",
@@ -607,6 +648,15 @@ window.kAuth = {
   async signIn(){ return (await signInAnonymously(auth)).user },
   async signOut(){ await signOut(auth) }
 };
+window.kPush = {
+  async enable(){
+    if(!(await isSupported())) throw new Error('This browser does not support web push. On iPhone: Add to Home Screen first (iOS 16.4+).');
+    if(await Notification.requestPermission() !== 'granted') throw new Error('Notifications were not allowed in this browser.');
+    const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {scope: '/firebase-cloud-messaging-push-scope'});
+    return await getToken(getMessaging(app), {vapidKey: 'BClnUFu0ih0ELjNG9eK_FpLEXCF9P_z6isIAVd7GICOEePgTfQhAf7PTr49S6kl7pFB2qnNYErBveSZ0sLWJNVQ', serviceWorkerRegistration: reg});
+  }
+};
+isSupported().then(ok => { if(ok) onMessage(getMessaging(app), p => { const d = p.data || {}; if(window.showAlertBanner) window.showAlertBanner(d.title, d.body); }); });
 onAuthStateChanged(auth, u => {
   window.kAuth.user = u;
   const box = document.getElementById('authBox'); if(!box) return;

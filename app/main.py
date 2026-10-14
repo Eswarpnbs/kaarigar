@@ -793,5 +793,57 @@ def eight_d_print(wo_id: str, print: int = 0):
 stored in Firestore. Prototype: machine data SIMULATED; past records SYNTHETIC.</div>
 {auto}</body></html>"""
 
+
+# ---------------- Phone alerts: Firebase Cloud Messaging (rule in code: damage zone within 12 h) ----------------
+class PushSub(BaseModel):
+    token: str
+
+
+@app.post("/api/alerts/subscribe")
+def alerts_subscribe(sub: PushSub, authorization: str | None = Header(default=None)):
+    claims = _verify_supervisor(authorization)
+    import hashlib
+    key = hashlib.sha1(sub.token.encode()).hexdigest()[:24]
+    act.STORE.put("push_tokens", key, {"token": sub.token, "uid": claims["uid"], "at": act._now()})
+    return {"status": "subscribed", "devices": len(act.STORE.list("push_tokens"))}
+
+
+@app.post("/api/alerts/check")
+def alerts_check(force: bool = False, authorization: str | None = Header(default=None)):
+    _verify_supervisor(authorization)
+    from datetime import date
+    import firebase_admin
+    from firebase_admin import messaging
+    from agents.diagnosis import MACHINES as MCH
+    from agents.tools.forecast import forecast_all
+    if not firebase_admin._apps:
+        firebase_admin.initialize_app(options={"projectId": os.environ.get("GOOGLE_CLOUD_PROJECT", "kaarigar-510716")})
+    at_risk = []
+    for mid, fc in sorted(forecast_all().items()):
+        h = (fc.get("hours_to_zone_d") or {}).get("expected")
+        if h is not None and h <= 12:                       # rule computed in code
+            at_risk.append((mid, h))
+    tokens = act.STORE.list("push_tokens")
+    sent, skipped, errors = 0, 0, []
+    for mid, h in at_risk:
+        key = f"{date.today().isoformat()}-{mid}"
+        if not force and act.STORE.get("alerts_sent", key):
+            skipped += 1
+            continue                                         # once per machine per day
+        name = MCH.get(mid, ("", ""))[0]
+        for t in tokens:
+            try:
+                messaging.send(messaging.Message(token=t["token"], data={
+                    "title": f"⚠ {mid} {name}: damage zone in ~{h:.0f} h",
+                    "body": "BigQuery ML forecast: vibration is rising. Tap to see why and plan the stop.",
+                    "url": "/", "tag": f"kaarigar-{mid}"},
+                    webpush=messaging.WebpushConfig(headers={"Urgency": "high"})))
+                sent += 1
+            except Exception as e:
+                errors.append(type(e).__name__)
+        act.STORE.put("alerts_sent", key, {"machine": mid, "hours": h, "at": act._now()})
+    return {"at_risk": [{"machine": m, "hours_to_damage_zone": h} for m, h in at_risk],
+            "devices": len(tokens), "sent": sent, "skipped_already_sent_today": skipped, "errors": errors[:5]}
+
 if STATIC.exists():
     app.mount("/", StaticFiles(directory=STATIC, html=True), name="static")
