@@ -845,5 +845,48 @@ def alerts_check(force: bool = False, authorization: str | None = Header(default
     return {"at_risk": [{"machine": m, "hours_to_damage_zone": h} for m, h in at_risk],
             "devices": len(tokens), "sent": sent, "skipped_already_sent_today": skipped, "errors": errors[:5]}
 
+
+# ---------------- Ground truth: expert defect masks (MVTec) vs Kaarigar's box, computed in code ----------------
+from fastapi.responses import FileResponse
+
+
+def _mask_path(part_id: str):
+    d = Path(os.environ.get("KAARIGAR_PAIRS_DIR", "data/pairs")) / part_id
+    return next((d / f for f in ("mask.png", "mask.jpg") if (d / f).exists()), None)
+
+
+@app.get("/api/parts/{part_id}/mask")
+def part_mask(part_id: str):
+    m = _mask_path(part_id)
+    if not m:
+        raise HTTPException(404, "No expert mask for this part")
+    return FileResponse(m)
+
+
+@app.get("/api/parts/{part_id}/groundtruth")
+def ground_truth(part_id: str):
+    from PIL import Image, ImageChops, ImageDraw
+    m = _mask_path(part_id)
+    if not m:
+        return {"has_mask": False}
+    cache = INSPECTION_CACHE / f"{part_id}.json"
+    ins = json.loads(cache.read_text()) if cache.exists() else {}
+    mask = Image.open(m).convert("L").point(lambda v: 255 if v > 127 else 0)
+    W, H = mask.size
+    total = mask.histogram()[255]
+    if total == 0:
+        return {"has_mask": True, "coverage": None, "note": "empty mask"}
+    boxes = Image.new("L", (W, H), 0)
+    dr = ImageDraw.Draw(boxes)
+    for d in ins.get("defects", []):
+        y0, x0, y1, x1 = d.get("box_2d", [0, 0, 0, 0])
+        dr.rectangle([x0 / 1000 * W, y0 / 1000 * H, x1 / 1000 * W, y1 / 1000 * H], fill=255)
+    covered = ImageChops.multiply(mask, boxes).histogram()[255]
+    bx = mask.getbbox()
+    coverage = round(covered / total, 2)
+    return {"has_mask": True, "coverage": coverage, "hit": coverage >= 0.3,
+            "mask_box_2d": [round(bx[1] / H * 1000), round(bx[0] / W * 1000), round(bx[3] / H * 1000), round(bx[2] / W * 1000)],
+            "source": "MVTec AD expert annotation", "computed_by": "code"}
+
 if STATIC.exists():
     app.mount("/", StaticFiles(directory=STATIC, html=True), name="static")

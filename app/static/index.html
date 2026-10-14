@@ -82,6 +82,7 @@ async function run(partId,fresh=false){
  <p>${ins.defect_found?'<span class="chip bad">Defect found</span>':'<span class="chip ok">No defect</span>'}<span class="chip">${esc(conf)} (${esc(ins.confidence)})</span><span class="chip">Recommendation: ${esc(ins.recommendation)}</span>${ins.from_cache?'<span class="chip warn">Stored result from an earlier live run</span> <button id="liveBtn">Run live (~30 s)</button>':'<span class="chip ok">Live result</span>'}</p>
  ${(ins.defects||[]).map(d=>`<p><b>${esc(d.type)}</b> · ${esc(d.severity)} · ${esc(d.location)}: ${esc(d.description)}</p>`).join('')}`);
  log('Inspector',ins.defect_found?`Found ${ins.defects.length} defect(s), confidence ${ins.confidence}`:'No defect found');
+ if(ins.defect_found)showGT(partId);
  tool('Inspector','golden_compare',ins.notes||'compared with golden samples');
  tool('Inspector','locate_defect','box to words computed in code');
  if($('#liveBtn'))$('#liveBtn').onclick=()=>run(partId,true);
@@ -97,13 +98,14 @@ async function run(partId,fresh=false){
  if(eu.supplier_history)tool('Diagnosis','supplier_history',`${eu.supplier_history.supplier}: ${eu.supplier_history.material_issues_total} material issue(s), ${eu.supplier_history.same_batch_issues} in this batch`);
  tool('Diagnosis','citation_check',(dg.invalid_citations_removed||[]).length?`${dg.invalid_citations_removed.length} unsupported claim(s) removed`:'all claims backed by evidence');
  done(el,`<p>${esc(r.summary)}</p>
- ${eu.forecast&&eu.forecast.hours_to_zone_d&&eu.forecast.hours_to_zone_d.expected!=null?`<div class="banner" style="background:#3a1d1d;border-color:#7f1d1d;color:#fecaca">⏱ Predict (BigQuery ML): left running, ${esc(eu.forecast.machine_id||'')} reaches ISO zone D (damage likely) in ~${esc(eu.forecast.hours_to_zone_d.expected)} h (range ${esc(eu.forecast.hours_to_zone_d.earliest)}–${esc(eu.forecast.hours_to_zone_d.latest)} h). Now ${esc(eu.forecast.latest_vibration)} mm/s, zone ${esc(eu.forecast.zone)}.</div>`:''}
+ ${eu.forecast&&eu.forecast.hours_to_zone_d&&eu.forecast.hours_to_zone_d.expected!=null?`<div class="banner" style="background:#3a1d1d;border-color:#7f1d1d;color:#fecaca">⏱ Predict (BigQuery ML): left running, ${esc(eu.forecast.machine_id||'')} reaches ISO zone D (damage likely) in ~${esc(eu.forecast.hours_to_zone_d.expected)} h (range ${esc(eu.forecast.hours_to_zone_d.earliest)}–${esc(eu.forecast.hours_to_zone_d.latest)} h). Latest hourly average ${esc(eu.forecast.latest_vibration)} mm/s, zone ${esc(eu.forecast.zone)}.</div>`:''}
  ${eu.recurrence?`<div class="banner">⚠ Recurring problem, occurrence #${eu.recurrence.cases.length+1}: ${esc(eu.recurrence.cases.map(c=>`${c.defect_id}, ${c.days_ago} days ago (fix: ${c.fix})`).join('; '))}. The earlier fix did not last.</div>`:''}
  ${r.likely_causes.map(c=>`<p><span class="chip ${c.likelihood==='high'?'bad':'warn'}">${esc(c.likelihood)}</span><span class="chip">${esc(c.category_6m)}</span><b>${esc(c.cause)}</b></p><ul>${c.evidence.map(e=>`<li class="small">${esc(e)}</li>`).join('')}</ul>`).join('')}
  <h2>5 Whys</h2><ol>${r.five_whys.map(w=>`<li><b>${esc(w.question)}</b><br><span class="small">${esc(w.answer)}</span></li>`).join('')}</ol>
  <p><span class="chip">Confidence ${esc(r.confidence)}%</span>${r.needs_human_check?'<span class="chip warn">Human should verify</span>':''}${(dg.invalid_citations_removed||[]).length?'<span class="chip warn">Unsupported claims removed</span>':''}</p>
  <button class="primary" id="woBtn">Create work order + 8D</button>`);
  log('Diagnosis',`Root cause: ${r.likely_causes[0]?.cause||'unclear'} (${r.confidence}%)`);
+ moneyAtRisk(eu.forecast);
  $('#woBtn').onclick=()=>workOrder(partId);
 }
 async function workOrder(partId){
@@ -169,7 +171,7 @@ async function voiceFlow(blob){
  const dg=await api('/api/diagnose-report',{method:'POST',body:{machine_id:v.machine_id,defect_type:v.defect_type,description:v.description}});
  const rp=dg.report,eu=dg.evidence_used;
  done(el,`<p>${esc(rp.summary)}</p>
- ${eu.forecast&&eu.forecast.hours_to_zone_d&&eu.forecast.hours_to_zone_d.expected!=null?`<div class="banner" style="background:#3a1d1d;border-color:#7f1d1d;color:#fecaca">⏱ Predict (BigQuery ML): left running, ${esc(eu.forecast.machine_id||'')} reaches ISO zone D (damage likely) in ~${esc(eu.forecast.hours_to_zone_d.expected)} h (range ${esc(eu.forecast.hours_to_zone_d.earliest)}–${esc(eu.forecast.hours_to_zone_d.latest)} h). Now ${esc(eu.forecast.latest_vibration)} mm/s, zone ${esc(eu.forecast.zone)}.</div>`:''}
+ ${eu.forecast&&eu.forecast.hours_to_zone_d&&eu.forecast.hours_to_zone_d.expected!=null?`<div class="banner" style="background:#3a1d1d;border-color:#7f1d1d;color:#fecaca">⏱ Predict (BigQuery ML): left running, ${esc(eu.forecast.machine_id||'')} reaches ISO zone D (damage likely) in ~${esc(eu.forecast.hours_to_zone_d.expected)} h (range ${esc(eu.forecast.hours_to_zone_d.earliest)}–${esc(eu.forecast.hours_to_zone_d.latest)} h). Latest hourly average ${esc(eu.forecast.latest_vibration)} mm/s, zone ${esc(eu.forecast.zone)}.</div>`:''}
  ${eu.recurrence?`<div class="banner">⚠ Recurring problem, occurrence #${eu.recurrence.cases.length+1}: ${esc(eu.recurrence.cases.map(c=>`${c.defect_id}, ${c.days_ago} days ago`).join('; '))}</div>`:''}
  ${rp.likely_causes.map(c=>`<p><span class="chip ${c.likelihood==='high'?'bad':'warn'}">${esc(c.likelihood)}</span><span class="chip">${esc(c.category_6m)}</span><b>${esc(c.cause)}</b></p>`).join('')}
  <h2>Actions</h2><ol>${rp.recommended_actions.map(a=>`<li>${esc(a.action)} <span class="small">(${esc(a.owner_role)}, ${esc(a.urgency)})</span></li>`).join('')}</ol>
@@ -508,6 +510,7 @@ const UI_DICT={
 'Reject':{kn:'ತಿರಸ್ಕರಿಸಿ',hi:'अस्वीकार करें',te:'తిరస్కరించండి'},
 'View 8D report':{kn:'8D ವರದಿ ನೋಡಿ',hi:'8D रिपोर्ट देखें',te:'8D రిపోర్ట్ చూడండి'},
 '📄 8D as PDF':{kn:'📄 8D PDF',hi:'📄 8D PDF',te:'📄 8D PDF'},
+'🎯 Ground truth':{kn:'🎯 ನಿಜವಾದ ದೋಷ ಪ್ರದೇಶ',hi:'🎯 असली खराबी का हिस्सा',te:'🎯 నిజమైన లోప ప్రాంతం'},
 'Run re-check':{kn:'ಮರುಪರಿಶೀಲನೆ ಮಾಡಿ',hi:'दोबारा जांचें',te:'మళ్ళీ తనిఖీ చేయండి'},
 'Find root cause':{kn:'ಮೂಲ ಕಾರಣ ಹುಡುಕಿ',hi:'मूल कारण खोजें',te:'మూల కారణం కనుగొనండి'},
 'Prepare guide':{kn:'ಮಾರ್ಗದರ್ಶಿ ತಯಾರಿಸಿ',hi:'गाइड तैयार करें',te:'గైడ్ సిద్ధం చేయండి'},
@@ -626,6 +629,46 @@ window.showAlertBanner=(title,body)=>{
  b.textContent=`${title} | ${body}`;document.body.appendChild(b);setTimeout(()=>b.remove(),8000);
  log('Kaarigar','Phone alert received: '+title)};
 $('#alertBtn').onclick=showAlerts;
+
+async function showGT(partId){
+ let g;try{g=await api(`/api/parts/${partId}/groundtruth`)}catch(e){return}
+ if(!g.has_mask||g.coverage==null)return;
+ const step=document.getElementById('s1');if(!step)return;
+ const wrap=step.querySelectorAll('.imgwrap')[1];if(!wrap)return;
+ const ov=document.createElement('img');ov.src=`/api/parts/${partId}/mask`;ov.alt='expert defect mask';
+ ov.style.cssText='position:absolute;inset:0;width:100%;height:100%;opacity:.55;mix-blend-mode:screen;filter:sepia(1) saturate(6) hue-rotate(60deg);display:none;pointer-events:none';
+ wrap.appendChild(ov);
+ const p=document.createElement('p');
+ p.innerHTML=`<button id="gtBtn">🎯 Ground truth</button> <span class="chip ${g.hit?'ok':'warn'}">🎯 Box covers ${Math.round(g.coverage*100)}% of the true defect area</span> <span class="small">(${esc(g.source)}; computed in code)</span>`;
+ step.querySelector('div').appendChild(p);
+ $('#gtBtn').onclick=()=>{const on=ov.style.display==='none';ov.style.display=on?'block':'none';$('#gtBtn').textContent=on?'🎯 Hide ground truth':'🎯 Ground truth'};
+ tool('Inspector','ground_truth',`expert mask vs box → ${Math.round(g.coverage*100)}% covered (code)`);
+}
+
+function moneyAtRisk(fc){
+ if(!fc||!fc.hours_to_zone_d||fc.hours_to_zone_d.expected==null)return;
+ const step=document.getElementById('s2');if(!step||document.getElementById('mrOut'))return;
+ const H=fc.hours_to_zone_d.expected;
+ const box=document.createElement('div');box.className='card';box.style.margin='10px 0';
+ box.innerHTML=`<h2>💰 What is this costing?</h2>
+ <p class="small">Example values: edit them to your shop's numbers. Hours come from the BigQuery ML forecast; the maths is plain code, no AI.</p>
+ <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;font-size:13px">
+  <label>Part cost (₹) <input id="mrPC" type="number" value="120" style="width:80px"></label>
+  <label>Parts per hour <input id="mrPH" type="number" value="40" style="width:70px"></label>
+  <label>Bad parts right now (%) <input id="mrBR" type="number" value="15" style="width:60px"></label>
+  <label>Downtime cost per hour (₹) <input id="mrDT" type="number" value="1500" style="width:80px"></label>
+  <label>Planned repair now (h) <input id="mrPS" type="number" value="2" style="width:60px"></label>
+  <label>Repair after a breakdown (h) <input id="mrBD" type="number" value="8" style="width:60px"></label>
+ </div><div id="mrOut" style="margin-top:8px"></div>`;
+ step.querySelector('div').appendChild(box);
+ const calc=()=>{const v=id=>Math.max(0,parseFloat($('#'+id).value)||0),f=n=>'₹'+Math.round(n).toLocaleString('en-IN');
+  const bad=v('mrPH')*H*v('mrBR')/100,scrap=bad*v('mrPC'),breakdown=v('mrBD')*v('mrDT'),run=scrap+breakdown,stop=v('mrPS')*v('mrDT');
+  $('#mrOut').innerHTML=`<p><span class="chip bad">Keep running ~${H} h, then break down: ${f(run)}</span>
+   <span class="small">(${Math.round(bad)} bad parts ≈ ${f(scrap)} + breakdown repair ${f(breakdown)})</span></p>
+   <p><span class="chip ok">Stop now for a planned repair: ${f(stop)}</span> <span class="small">→ saves about <b>${f(Math.max(0,run-stop))}</b></span></p>`};
+ box.querySelectorAll('input').forEach(i=>i.oninput=calc);calc();
+ tool('Action','money_at_risk',`computed in code from the forecast (${H} h) and the shop's own numbers`);
+}
 loadParts();loadFactory();showMap();
 setTimeout(translatePage,300);
 if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
