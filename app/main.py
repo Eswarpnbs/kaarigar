@@ -532,7 +532,7 @@ LIVE_RULES = [
     (r"^/api/inspect/([^/]+)$", "inspect"),
     (r"^/api/diagnose/([^/]+)$", "diagnose"),
     (r"^/api/diagnose-report$", None), (r"^/api/voice$", None), (r"^/api/speak$", None),
-    (r"^/api/measure$", None), (r"^/api/localize$", None), (r"^/api/ask$", None), (r"^/api/inspect-upload$", None), (r"^/api/handover$", None), (r"^/api/teach/[^/]+$", None), (r"^/api/work-orders/[^/]+/sop-change$", None),
+    (r"^/api/measure$", None), (r"^/api/localize$", None), (r"^/api/ask$", None), (r"^/api/register/read$", None), (r"^/api/inspect-upload$", None), (r"^/api/handover$", None), (r"^/api/teach/[^/]+$", None), (r"^/api/work-orders/[^/]+/sop-change$", None),
     (r"^/api/work-orders/[^/]+$", None),          # create work order + 8D draft
 ]
 
@@ -965,6 +965,32 @@ def _warm_caches():
                 pass
             _t.sleep(240)
     threading.Thread(target=_w, daemon=True).start()
+
+
+# ---------------- Paper register -> Factory Memory (Gemini reads, code validates, supervisor approves) ----------------
+@app.post("/api/register/read")
+async def register_read(image: UploadFile = File(...)):
+    data = await image.read()
+    if not data or len(data) > 15_000_000:
+        raise HTTPException(413, "Photo is empty or too large.")
+    jpeg, _ = _normalize_photo(data)
+    from agents.register import read_register
+    try:
+        return read_register(jpeg)
+    except Exception as e:
+        raise HTTPException(503, f"Could not read the register, please try again ({type(e).__name__})")
+
+
+class RegCommit(BaseModel):
+    rows: list[dict]
+
+
+@app.post("/api/register/commit")
+def register_commit(c: RegCommit, authorization: str | None = Header(default=None)):
+    claims = _verify_supervisor(authorization)
+    from agents.register import commit_rows
+    return commit_rows(c.rows, f"supervisor (Firebase Auth uid {claims['uid'][:8]}...)")
+
 
 if STATIC.exists():
     app.mount("/", StaticFiles(directory=STATIC, html=True), name="static")
