@@ -992,5 +992,40 @@ def register_commit(c: RegCommit, authorization: str | None = Header(default=Non
     return commit_rows(c.rows, f"supervisor (Firebase Auth uid {claims['uid'][:8]}...)")
 
 
+
+# ---------------- Quality Passport: shareable, tamper-evident batch quality record ----------------
+@app.get("/api/passport/options")
+def passport_options():
+    from agents.passport import options
+    return {"options": options()}
+
+
+class PassportReq(BaseModel):
+    product: str
+    batch: str
+
+
+@app.post("/api/passport")
+def passport_create(r: PassportReq, authorization: str | None = Header(default=None)):
+    claims = _verify_supervisor(authorization)
+    import base64, io, qrcode
+    from agents.passport import create
+    res = create(r.product, r.batch, f"supervisor (Firebase Auth uid {claims['uid'][:8]}...)")
+    if res.get("status") != "success":
+        raise HTTPException(400, res.get("message", "Could not create the passport"))
+    url = os.environ.get("KAARIGAR_PUBLIC_URL", "https://kaarigar-510716.web.app") + "/passport/" + res["token"]
+    buf = io.BytesIO(); qrcode.make(url).save(buf, format="PNG")
+    return {**res, "url": url, "path": "/passport/" + res["token"], "qr_png": base64.b64encode(buf.getvalue()).decode()}
+
+
+@app.get("/passport/{token}", response_class=HTMLResponse)
+def passport_page(token: str):
+    from agents.passport import load, render
+    rec = load(token)
+    if not rec:
+        raise HTTPException(404, "Passport not found")
+    return render(rec)
+
+
 if STATIC.exists():
     app.mount("/", StaticFiles(directory=STATIC, html=True), name="static")

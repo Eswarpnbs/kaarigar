@@ -49,7 +49,8 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:16px}
 <button id="teachBtn" style="width:100%;margin-bottom:8px">🎓 Kaarigar Teaches (new operator)</button>
 <button id="hoBtn" style="width:100%;margin-bottom:8px">🌅 Shift handover</button>
 <button id="alertBtn" style="width:100%;margin-bottom:8px">📳 Phone alerts</button>
-<button id="regBtn" style="width:100%;margin-bottom:12px">📒 Import paper register</button>
+<button id="regBtn" style="width:100%;margin-bottom:8px">📒 Import paper register</button>
+<button id="ppBtn" style="width:100%;margin-bottom:12px">🏷️ Quality Passport</button>
 <h2>Parts</h2><div id="parts"></div><h2 style="margin-top:16px">Factory (live)</h2><div id="factory" class="small">Loading…</div></section>
 <section class="card"><div id="flow"><p class="small">Pick a part or press <b>Try the demo</b>. Kaarigar inspects it against golden samples, finds the root cause, and drafts a work order for a supervisor to approve.</p></div></section>
 <section class="card"><h2>Agent reasoning</h2><div id="log" class="log"><div class="small">Each step the agents take appears here.</div></div></section>
@@ -748,5 +749,7 @@ onAuthStateChanged(auth, u => {
 </script>
 <script src="/camera.js"></script>
 <script src="/register.js"></script>
+<script src="/passport.js"></script>
+<script>document.getElementById("ppBtn").onclick=showPassport;</script>
 <script>document.getElementById("regBtn").onclick=showRegister;</script>
 </body></html>
