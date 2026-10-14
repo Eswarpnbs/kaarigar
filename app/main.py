@@ -950,6 +950,14 @@ def _warm_caches():
         import time as _t
         from agents.tools.forecast import forecast_all
         from agents.tools.machine_data import refresh_factory_cache
+        try:                                          # one-time warm-up of the slow cold paths
+            _adk_runner()                             # ADK framework + agent team
+            from agents.memory import learned_cases, semantic_search
+            learned_cases(); semantic_search("warm up", k=1)   # Firestore + embeddings connection
+            from agents.inspector import client as _gc
+            _gc()                                     # Gemini connection
+        except Exception:
+            pass
         while True:                                   # keep machine health + forecast always warm
             try:
                 refresh_factory_cache(); forecast_all()

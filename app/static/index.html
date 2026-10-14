@@ -61,7 +61,7 @@ let t0=0;
 function log(agent,msg){const d=document.createElement('div');d.innerHTML=`<b>${esc(agent)}</b> · ${esc(msg)} <span class="small">(${((performance.now()-t0)/1000).toFixed(1)}s)</span>`;$('#log').appendChild(d);d.scrollIntoView({block:'nearest'})}
 function tool(agent,name,detail){const d=document.createElement('div');d.innerHTML=`<span class="small">↳ <code>${esc(name)}</code> ${esc(detail)}</span>`;$('#log').appendChild(d)}
 async function api(path,opts={}){const r=await fetch(path,{method:opts.method||'GET',headers:{'Content-Type':'application/json'},body:opts.body?JSON.stringify(opts.body):undefined});
- if(!r.ok)throw new Error(await r.text());return (r.headers.get('content-type')||'').includes('json')?r.json():r.text()}
+ if(!r.ok){const t=await r.text();let m=t;try{m=JSON.parse(t).detail||t}catch(e){};throw new Error(m)}return (r.headers.get('content-type')||'').includes('json')?r.json():r.text()}
 function stepEl(id,title){let el=document.getElementById(id);if(!el){el=document.createElement('div');el.id=id;$('#flow').appendChild(el)}
  el.className='step run';el.innerHTML=`<h2>${esc(title)}</h2><div><span class="spinner"></span><span class="small">Working…</span></div>`;el.scrollIntoView({behavior:'smooth',block:'nearest'});return el}
 function done(el,html){el.className='step done';el.querySelector('div').outerHTML=`<div>${html}</div>`}
