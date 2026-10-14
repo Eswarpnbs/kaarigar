@@ -232,8 +232,30 @@ def factory_overview(recent_hours: int = 3) -> dict:
     return {"status": "success", "machines": out, "data_note": "SIMULATED sensor data (prototype)"}
 
 
+
+# ---- 60 s cache: shared by the map, handover and Ask Kaarigar (BigQuery health queries are slow cold) ----
+import copy as _copy
+import time as _time
+_FO_CACHE = {"t": 0.0, "v": None}
+_factory_overview_uncached = factory_overview
+
+
+def factory_overview(*a, **k):
+    if not a and not k and _FO_CACHE["v"] is not None and _time.time() - _FO_CACHE["t"] < 300:
+        return _copy.deepcopy(_FO_CACHE["v"])
+    v = _factory_overview_uncached(*a, **k)
+    if not a and not k:
+        _FO_CACHE.update(t=_time.time(), v=_copy.deepcopy(v))
+    return v
+
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         print(json.dumps(machine_health(sys.argv[1]), indent=2, default=str, ensure_ascii=False))
     else:
         print(json.dumps(factory_overview(), indent=2, default=str, ensure_ascii=False))
+
+def refresh_factory_cache():
+    """Recompute machine health now and store it (called by the background refresher)."""
+    v = _factory_overview_uncached()
+    _FO_CACHE.update(t=_time.time(), v=_copy.deepcopy(v))
+    return v

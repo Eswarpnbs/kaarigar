@@ -532,7 +532,7 @@ LIVE_RULES = [
     (r"^/api/inspect/([^/]+)$", "inspect"),
     (r"^/api/diagnose/([^/]+)$", "diagnose"),
     (r"^/api/diagnose-report$", None), (r"^/api/voice$", None), (r"^/api/speak$", None),
-    (r"^/api/measure$", None), (r"^/api/localize$", None), (r"^/api/inspect-upload$", None), (r"^/api/handover$", None), (r"^/api/teach/[^/]+$", None), (r"^/api/work-orders/[^/]+/sop-change$", None),
+    (r"^/api/measure$", None), (r"^/api/localize$", None), (r"^/api/ask$", None), (r"^/api/inspect-upload$", None), (r"^/api/handover$", None), (r"^/api/teach/[^/]+$", None), (r"^/api/work-orders/[^/]+/sop-change$", None),
     (r"^/api/work-orders/[^/]+$", None),          # create work order + 8D draft
 ]
 
@@ -887,6 +887,76 @@ def ground_truth(part_id: str):
     return {"has_mask": True, "coverage": coverage, "hit": coverage >= 0.3,
             "mask_box_2d": [round(bx[1] / H * 1000), round(bx[0] / W * 1000), round(bx[3] / H * 1000), round(bx[2] / W * 1000)],
             "source": "MVTec AD expert annotation", "computed_by": "code"}
+
+
+# ---------------- Ask Kaarigar: the ADK agent team, live (read-only) ----------------
+import asyncio as _asyncio
+_ADK = {"runner": None}
+
+
+class AskRequest(BaseModel):
+    question: str
+    session_id: str = ""
+    lang: str = "en-IN"
+
+
+def _adk_runner():
+    if _ADK["runner"] is None:
+        from google.adk.runners import Runner
+        from google.adk.sessions import InMemorySessionService
+        from adk_app.kaarigar.web_team import web_root
+        _ADK["runner"] = Runner(app_name="kaarigar_web", agent=web_root,
+                                session_service=InMemorySessionService(), auto_create_session=True)
+    return _ADK["runner"]
+
+
+@app.post("/api/ask")
+async def ask(req: AskRequest):
+    import uuid
+    from google.genai import types as _t
+    q = req.question.strip()[:800]
+    if not q:
+        raise HTTPException(400, "Please type a question.")
+    sid = req.session_id or uuid.uuid4().hex[:12]
+    msg = _t.Content(role="user", parts=[_t.Part(text=f"[Answer in {'English' if req.lang == 'en-IN' else LANG_NAMES_L.get(req.lang, 'English')}] {q}")])
+    trace, answer = [], {"text": ""}
+
+    async def _run():
+        async for ev in _adk_runner().run_async(user_id="web", session_id=sid, new_message=msg):
+            for fc in (ev.get_function_calls() or []):
+                trace.append({"agent": ev.author, "tool": fc.name,
+                              "args": {k: str(v)[:60] for k, v in (fc.args or {}).items()}})
+            if ev.is_final_response() and ev.content and ev.content.parts:
+                t = "".join(getattr(p, "text", "") or "" for p in ev.content.parts).strip()
+                if t:
+                    answer["text"] = t
+                    trace.append({"agent": ev.author, "tool": None, "args": {}})
+
+    try:
+        await _asyncio.wait_for(_run(), timeout=55)
+    except _asyncio.TimeoutError:
+        raise HTTPException(504, "Kaarigar took too long to answer. Please try a simpler question.")
+    except Exception as e:
+        raise HTTPException(503, f"Ask Kaarigar is busy, please try again ({type(e).__name__})")
+    return {"answer": answer["text"] or "I could not find an answer in the factory data.", "trace": trace, "session_id": sid}
+
+
+
+@app.on_event("startup")
+def _warm_caches():
+    import threading
+
+    def _w():
+        import time as _t
+        from agents.tools.forecast import forecast_all
+        from agents.tools.machine_data import refresh_factory_cache
+        while True:                                   # keep machine health + forecast always warm
+            try:
+                refresh_factory_cache(); forecast_all()
+            except Exception:
+                pass
+            _t.sleep(240)
+    threading.Thread(target=_w, daemon=True).start()
 
 if STATIC.exists():
     app.mount("/", StaticFiles(directory=STATIC, html=True), name="static")

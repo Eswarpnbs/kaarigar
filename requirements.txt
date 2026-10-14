@@ -62,3 +62,4 @@ python-multipart
 firebase-admin
 google-cloud-vision
 markdown
+google-adk==2.11.0

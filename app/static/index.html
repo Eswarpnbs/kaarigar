@@ -41,6 +41,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:16px}
 <section class="card"><button class="primary" id="demoBtn" style="width:100%;margin-bottom:8px">▶ Try the demo</button>
 <button id="realBtn" style="width:100%;margin-bottom:8px">▶ Real factory part (Peenya)</button>
 <button id="micBtn" style="width:100%;margin-bottom:8px">🎙 Report a problem by voice</button>
+<button id="askBtn" class="primary" style="width:100%;margin-bottom:8px">💬 Ask Kaarigar</button>
 <button id="mapBtn" style="width:100%;margin-bottom:8px">🏭 Factory map</button>
 <button id="calBtn" style="width:100%;margin-bottom:8px">📏 Check a measurement</button>
 <button id="supBtn" style="width:100%;margin-bottom:8px">🏷️ Supplier scorecard</button>
@@ -486,6 +487,7 @@ const UI_DICT={
 '🎓 Kaarigar Teaches (new operator)':{kn:'🎓 ಕಾರಿಗರ್ ಕಲಿಸುತ್ತದೆ (ಹೊಸ ಆಪರೇಟರ್)',hi:'🎓 कारीगर सिखाता है (नया ऑपरेटर)',te:'🎓 కారిగర్ నేర్పిస్తుంది (కొత్త ఆపరేటర్)'},
 '🌅 Shift handover':{kn:'🌅 ಶಿಫ್ಟ್ ಹಸ್ತಾಂತರ',hi:'🌅 शिफ्ट हैंडओवर',te:'🌅 షిఫ్ట్ హ్యాండోవర్'},
 '📳 Phone alerts':{kn:'📳 ಫೋನ್ ಎಚ್ಚರಿಕೆಗಳು',hi:'📳 फ़ोन अलर्ट',te:'📳 ఫోన్ హెచ్చరికలు'},
+'💬 Ask Kaarigar':{kn:'💬 ಕಾರಿಗರ್‌ನನ್ನು ಕೇಳಿ',hi:'💬 कारीगर से पूछें',te:'💬 కారిగర్‌ను అడగండి'},
 'Parts':{kn:'ಭಾಗಗಳು',hi:'पार्ट्स',te:'భాగాలు'},
 'Factory (live)':{kn:'ಕಾರ್ಖಾನೆ (ಲೈವ್)',hi:'फ़ैक्टरी (लाइव)',te:'ఫ్యాక్టరీ (లైవ్)'},
 'Agent reasoning':{kn:'ಏಜೆಂಟ್ ತರ್ಕ',hi:'एजेंट की सोच',te:'ఏజెంట్ ఆలోచన'},
@@ -669,6 +671,38 @@ function moneyAtRisk(fc){
  box.querySelectorAll('input').forEach(i=>i.oninput=calc);calc();
  tool('Action','money_at_risk',`computed in code from the forecast (${H} h) and the shop's own numbers`);
 }
+
+let askSid='';
+const mdLite=s=>esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/^\s*[\*\-] /gm,'• ');
+function showAsk(){
+ t0=performance.now();$('#log').innerHTML='';
+ $('#flow').innerHTML=`<h2>💬 Ask Kaarigar</h2>
+ <p class="small">Ask about your factory. The ADK agent team routes your question to the right specialist, which answers from real tools (BigQuery forecast, machine health, Factory Memory, suppliers, work orders). Read-only: it cannot approve anything.</p>
+ <p><input id="askQ" style="width:70%;padding:8px;border-radius:8px;border:1px solid #262b36;background:#0b0d11;color:#e8eaed" placeholder="e.g. Which machine worries you most, and why?"> <button class="primary" id="askGo">Ask</button></p>
+ <p>${['Which machine worries you most, and why?','Which supplier causes most of our problems?','What is waiting for my approval?','Have we seen scratches on flange nuts before?'].map(q=>`<button class="askEx" style="margin:2px">${esc(q)}</button>`).join('')}</p>
+ <div id="askOut" data-noai></div>`;
+ $('#askGo').onclick=()=>runAsk($('#askQ').value);
+ $('#askQ').onkeydown=e=>{if(e.key==='Enter')runAsk($('#askQ').value)};
+ document.querySelectorAll('.askEx').forEach(b=>b.onclick=()=>{$('#askQ').value=b.textContent;runAsk(b.textContent)});
+}
+async function runAsk(q){
+ q=(q||'').trim();if(!q||$('#askGo').disabled)return;$('#askGo').disabled=true;
+ document.querySelectorAll('#askOut #spkBtn').forEach(b=>b.removeAttribute('id'));
+ const turn=document.createElement('div');turn.className='card';turn.style.margin='8px 0';
+ turn.innerHTML=`<p><b>🙋 ${esc(q)}</b></p><p><span class="spinner"></span><span class="small">Routing to the right agent…</span></p>`;
+ $('#askOut').prepend(turn);log('Kaarigar','Ask: routing the question to the ADK agent team');
+ try{
+  const d=await api('/api/ask',{method:'POST',body:{question:q,session_id:askSid,lang:uiLangCode()}});askSid=d.session_id;
+  const route=[...new Set(d.trace.map(t=>t.agent))].join(' → ');
+  turn.innerHTML=`<p><b>🙋 ${esc(q)}</b></p><div style="white-space:pre-wrap">${mdLite(d.answer)}</div>
+   <p class="small">Agents: ${esc(route)}</p><button id="spkBtn">🔊 Listen</button>`;
+  d.trace.filter(t=>t.tool).forEach(t=>tool(t.agent,t.tool,Object.entries(t.args).map(([k,v])=>`${k}=${v}`).join(', ')||'—'));
+  log('Kaarigar',`Answered by ${route}`);
+  turn.querySelector('#spkBtn').onclick=()=>speak(d.answer,uiLangCode());prefetchSpeech(d.answer,uiLangCode());
+ }catch(e){turn.innerHTML=`<p><b>🙋 ${esc(q)}</b></p><p class="small">${esc(String(e.message||e).slice(0,200))}</p>`}
+ finally{$('#askGo').disabled=false}
+}
+$('#askBtn').onclick=showAsk;
 loadParts();loadFactory();showMap();
 setTimeout(translatePage,300);
 if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
