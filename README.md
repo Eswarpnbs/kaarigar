@@ -71,7 +71,7 @@ Press **▶ Try the demo** (machine story) or **▶ Real factory part (Peenya)**
 |---|---|---|
 | Real factory photos | 9 cases from two Bengaluru shops (written permission) | Defects caught **4/4**; good parts accepted 3/5 |
 | Indian foundry castings | Kaggle, Pilot Technocast impellers, 98 pairs, one golden photo, zero training | Defects caught **96%** (95% CI 87–99%); false alarms 38% (natural casting texture) |
-| MVTec AD | metal nut + screw, all 275 test images | *(results below)* |
+| MVTec AD | metal nut + screw, all test images (270 evaluated) | Defects caught **86.6%** (95% CI 81–91%); safe outcome 92.3%; defect box on the real defect 74%; false alarms 48% (random part rotation in the benchmark) |
 | Predict backtest | 25 **simulated** breakdowns, 5 seeds, model retrained hourly on past data only | Bearing wear warned **10/10**, median **9.2 h** ahead; misalignment 5/10; **0/19** false alarms on healthy machines. Tool wear is not visible in vibration and is caught at inspection instead |
 
 Reproduce: `python -m evals.run_eval <pairs dir> --tag <name>` · `python -m evals.backtest_multi 5` · `python -m evals.real_world` · `python -m evals.cost 95.08`.
