@@ -41,3 +41,18 @@ Press **▶ Try the demo** (machine story) or **▶ Real factory part (Peenya)**
 ## Security and secrets
 - **No secrets in this repository.** Server credentials come from the Cloud Run service identity (Application Default Credentials); there are no service-account keys, `.env` files or client secrets in Git.
 - The `apiKey` in `app/static/index.html` and `firebase-messaging-sw.js` is the **Firebase web configuration**, which is public by design: it only identifies the Firebase project. It is **restricted to our own domains** in Google Cloud, and every sensitive action is protected server-side: supervisor approvals require a **verified Firebase Authentication token**, and live AI calls pass through a **per-visitor budget guard** (Firestore counters).
+
+## Judge guide: test Kaarigar in 3 minutes
+**Live app:** https://kaarigar-510716.web.app (no login needed; works on a phone).
+
+1. **Golden sample wall (home screen).** Tap any pinned part. Kaarigar compares it with its golden sample, locates the defect, and diagnoses the root cause. Watch the **route card** at the top get stamped (Detect, Diagnose, Act…) and the **agent reasoning** panel on the right. Drag the **spot-the-difference slider** under the result.
+2. **▶ Watch the full loop.** The complete Detect → Diagnose → Act → Verify → Predict → Prevent → Learn flow. To approve the work order, click **Sign in as demo supervisor** (one click, Firebase Authentication).
+3. **💬 Ask Kaarigar** (ADK agent team). Try: *"Which machine worries you most, and why?"* · *"Which supplier causes most of our problems?"* · *"What is waiting for my approval?"* · *"Have we seen scratches on flange nuts before?"* Switch the header to **ಕನ್ನಡ / हिन्दी / తెలుగు** and ask again.
+4. **📷 Inspect your own part.** Two photos of any small object (one good, one scratched or different), with the live camera's guided capture.
+5. Also try **🏷️ Quality Passport** (QR code), **📒 Import paper register** (sample page: `docs/sample_register.png`), **📏 Check a measurement**, **🎙 Report a problem by voice**.
+
+### Known limits (so nothing surprises you)
+- **Live AI calls:** 80 per hour and 600 per day per visitor (budget guard). Cached demo paths (the wall, *Watch the full loop*) are always instant and unlimited.
+- **Timing:** a live inspection takes about 20–40 s; *Ask Kaarigar* about 5–15 s.
+- **If Gemini is busy,** Kaarigar retries automatically and falls back to Flash-Lite; the cached demo paths keep working.
+- **Data labels:** machine sensor data is **simulated** and seed defect records are **synthetic** (labelled throughout the app). Factory photos are **real**, from two Bengaluru shops, used with written permission (names, faces, and logos hidden).
