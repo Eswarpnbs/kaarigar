@@ -9,7 +9,7 @@ import os
 import sys
 from pathlib import Path
 
-COLLECTIONS = ["work_orders", "factory_memory", "sop_changes"]
+COLLECTIONS = ["work_orders", "factory_memory", "sop_changes", "passports"]
 DELETE = "--yes" in sys.argv
 
 

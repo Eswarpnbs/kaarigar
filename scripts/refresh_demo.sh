@@ -40,7 +40,7 @@ python -m agents.tools.forecast
 if [[ "${1:-}" != "--no-deploy" ]]; then
   echo "== Deploying to Cloud Run (cached diagnoses must match the fresh data)"
   gcloud run deploy kaarigar --source . --region asia-south1 --allow-unauthenticated \
-    --memory 1Gi --cpu 1 --timeout 300 --max-instances 3 \
+    --memory 1Gi --cpu 1 --timeout 300 --max-instances 3 --min-instances 1 --cpu-boost --session-affinity \
     --set-env-vars GOOGLE_CLOUD_PROJECT=$GOOGLE_CLOUD_PROJECT,GOOGLE_CLOUD_LOCATION=global,GOOGLE_GENAI_USE_VERTEXAI=TRUE,KAARIGAR_MODEL=gemini-2.5-flash,KAARIGAR_PAIRS_DIR=demo_parts,KAARIGAR_STORE=firestore,KAARIGAR_AGENT_ENGINE_ID=4583600368285384704
 fi
 echo "== Done"
