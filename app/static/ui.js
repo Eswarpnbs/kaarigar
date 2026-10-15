@@ -100,7 +100,8 @@
   const flow = document.getElementById('flow');
   function addCompare() {
     if (flow.querySelector('.cmp')) return;
-    const t = flow.querySelector('img[src*="/image/test"]'), g = flow.querySelector('img[src*="/image/golden"]');
+    const pick = q => [...flow.querySelectorAll(q)].find(i => !i.closest('.pin, .scanbox, .cmp'));
+    const t = pick('img[src*="/image/test"]'), g = pick('img[src*="/image/golden"]');
     if (!t || !g || !t.parentElement) return;
     const box = document.createElement('div'); box.className = 'cmp';
     box.innerHTML = `<p class="small">Drag across the photo to compare the good part with this part.</p>
@@ -116,4 +117,97 @@
     }
   }
   new MutationObserver(addCompare).observe(flow, { childList: true, subtree: true });
+})();
+(function () {
+  // features drawer (desktop): everything beyond the core actions lives here
+  const db = document.createElement('button'); db.id = 'drawerBtn'; db.textContent = '☰ All features';
+  const lang = document.querySelector('header select'); lang.parentElement.insertBefore(db, lang);
+  db.onclick = () => document.body.classList.toggle('drawer');
+  document.addEventListener('click', e => {
+    if (e.target.closest('#nav button')) document.body.classList.remove('drawer');
+    else if (document.body.classList.contains('drawer') && !e.target.closest('main>section:first-of-type') && e.target !== db) document.body.classList.remove('drawer');
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') document.body.classList.remove('drawer'); });
+  // home: one question, one big action, one ask bar, then the wall
+  const prev = window.showHome;
+  window.showHome = function () {
+    prev(); const f = document.getElementById('flow');
+    f.querySelector('.home-acts')?.remove(); f.querySelector('.home-sub')?.remove();
+    const h = f.querySelector('.home-h'); if (h) { h.className = 'wall-title'; h.textContent = 'Or tap a part on your golden sample wall'; }
+    const hero = document.createElement('div'); hero.className = 'hero';
+    hero.innerHTML = `<h1 class="hero-h">Is this part good?</h1>
+      <p class="hero-sub">Point your phone at a part. Kaarigar compares it with the golden sample and tells you what is wrong, why, and how to fix it.</p>
+      <div class="hero-acts"><button class="primary hero-cta" id="heroCheck">📷 Check a part</button><button id="heroLoop">▶ Watch the full loop</button></div>
+      <form class="askbar" id="heroAsk"><span aria-hidden="true">💬</span><input id="heroQ" aria-label="Ask Kaarigar" placeholder="Ask your factory… e.g. Which machine worries you most?"><button class="primary">Ask</button></form>`;
+    (document.getElementById('homeAlert') || f.firstChild).after(hero);
+    hero.querySelector('#heroCheck').onclick = () => document.getElementById('ownBtn').click();
+    hero.querySelector('#heroLoop').onclick = () => document.getElementById('demoBtn').click();
+    hero.querySelector('#heroAsk').onsubmit = e => { e.preventDefault(); const q = hero.querySelector('#heroQ').value.trim();
+      document.getElementById('askBtn').click(); if (q) setTimeout(() => { document.getElementById('askQ').value = q; runAsk(q); }, 60); };
+  };
+  document.getElementById('homeBtn').onclick = window.showHome; document.querySelector('.logo').onclick = window.showHome;
+  window.showHome();
+})();
+(function () {
+  const STEPS = [['photo_quality', 'Checking the photo'], ['golden_compare', 'Comparing with the golden sample'], ['locate_defect', 'Locating the defect'],
+    ['machine_health', 'Checking machine health'], ['factory_memory', 'Searching Factory Memory'], ['citation_check', 'Verifying every claim'], ['root_cause', 'Finding the root cause']];
+  const flow = document.getElementById('flow'); let box = null, last = 0;
+  const later = (fn, gap) => { const t = Math.max(performance.now(), last + gap); last = t; setTimeout(fn, t - performance.now()); };
+  function begin(pid) {
+    box = document.createElement('div'); box.className = 'scanbox'; last = 0;
+    box.innerHTML = `<div class="scan-img"><img src="/api/parts/${pid}/image/test" alt="Part being checked"><div class="beam"></div></div>
+      <ol class="scan-list">${STEPS.map(([k, t]) => `<li data-k="${k}">${t}</li>`).join('')}</ol>`;
+    flow.prepend(box); box.querySelector('li').classList.add('now');
+  }
+  function tick(name) {
+    const b = box; if (!b) return; const li = b.querySelector(`li[data-k="${name}"]`); if (!li || li.dataset.q) return; li.dataset.q = 1;
+    later(() => { if (b !== box) return; const all = [...b.querySelectorAll('li')], i = all.indexOf(li);
+      all.slice(0, i).forEach(x => { if (!x.classList.contains('ok')) x.className = 'skip'; });
+      li.className = 'ok'; const nx = all.slice(i + 1).find(x => !x.classList.contains('ok')); b.querySelectorAll('li.now').forEach(x => x.classList.remove('now')); if (nx) nx.classList.add('now'); }, 380);
+  }
+  function stampIt(defect) {
+    const b = box; if (!b) return;
+    later(() => { if (b !== box) return; const im = b.querySelector('.scan-img'); im.classList.add('done');
+      im.insertAdjacentHTML('beforeend', `<div class="stamp ${defect ? 'bad' : 'ok'}">${defect ? 'NOT OK' : 'OK'}</div>`);
+      if (defect && navigator.vibrate) navigator.vibrate([90, 50, 90]);
+      if (!defect) b.querySelectorAll('li:not(.ok)').forEach(x => x.className = 'skip'); }, 450);
+  }
+  new MutationObserver(() => { if (box && !flow.contains(box)) flow.prepend(box); }).observe(flow, { childList: true });
+  document.addEventListener('click', e => { if (e.target.closest('#nav button, #homeBtn, .logo, #heroCheck, #heroAsk, #tabs button, .pin, #heroLoop')) box = null; }, true);
+  const _run = window.run; window.run = function (pid) { const r = _run.apply(this, arguments); setTimeout(() => begin(pid), 0); return r; };
+  const _tool = window.tool; window.tool = function (a, n) { try { tick(n); } catch (e) {} return _tool.apply(this, arguments); };
+  const _log = window.log; window.log = function (a, m) {
+    try { if (a === 'Inspector' && typeof m === 'string') { if (/^Found \d+ defect/.test(m)) stampIt(true); else if (m === 'No defect found') stampIt(false); }
+    if (a === 'Diagnosis' && typeof m === 'string' && /^Root cause/.test(m)) tick('root_cause'); } catch (e) {}
+    return _log.apply(this, arguments);
+  };
+})();
+(function () {
+  const nice = s => s.startsWith('machine_health:') ? s.split(':')[1] + ' vibration' : s === 'pattern_hints' ? 'Bearing-wear pattern'
+    : s.startsWith('past_defect:L-') ? 'Learned from a past fix' : s.startsWith('past_defect:') ? 'Past case ' + s.split(':')[1].split('-').slice(0, 2).join('-') : s === 'recurrence_check' ? 'Repeat problem'
+    : s.startsWith('supplier') ? 'Supplier history' : s;
+  function showCause(rep) {
+    const box = document.querySelector('.scanbox'); const top = (rep.likely_causes || [])[0]; if (!box || !top || box.querySelector('.cause')) return;
+    const fix = ((rep.recommended_actions || [])[0] || {}).action || '';
+    const chips = [...new Set((top.evidence_sources || []).map(nice))].slice(0, 4).map(c => `<span class="chip">${esc(c)}</span>`).join('');
+    const card = document.createElement('div'); card.className = 'cause';
+    card.innerHTML = `<div class="cause-k">Why</div><div class="cause-v">${esc(top.cause)}</div><div class="ev">${chips}</div>
+      ${fix ? `<div class="cause-k">Fix</div><div class="cause-v">${esc(fix)}</div>` : ''}
+      <div class="cause-acts"><button class="primary" id="causeGo">Review and approve the fix</button><button id="causeMore">See the full report</button></div>`;
+    setTimeout(() => {
+      box.appendChild(card);
+      card.querySelector('#causeMore').onclick = () => document.querySelector('#flow .step')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      card.querySelector('#causeGo').onclick = () => {
+        const btns = [...document.querySelectorAll('#flow button')].filter(b => !b.closest('.cause'));
+        const t = btns.find(b => /approve/i.test(b.textContent)) || btns.find(b => /work order/i.test(b.textContent));
+        if (t) { t.scrollIntoView({ behavior: 'smooth', block: 'center' }); t.classList.add('flash'); setTimeout(() => t.classList.remove('flash'), 2500); }
+      };
+    }, 900);
+  }
+  const _api = window.api;
+  window.api = async function (path) {
+    const d = await _api.apply(this, arguments);
+    try { if (typeof path === 'string' && path.startsWith('/api/diagnose/') && d && d.report) showCause(d.report); } catch (e) {}
+    return d;
+  };
 })();
