@@ -14,3 +14,7 @@ adk_app/**/.adk/
 data/bench/
 app/static/index.backup.html
 data/bench_casting/
+.firebase/
+demo_parts/upload_*/
+evals/runs/*_full_mvtec_275/images/
+evals/runs/*_casting_100/images/

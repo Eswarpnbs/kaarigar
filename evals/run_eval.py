@@ -27,6 +27,9 @@ from PIL import Image
 from evals.inspect_test import draw_boxes, find_image
 from agents.inspector import MODEL, inspect
 
+import concurrent.futures as _cf
+_POOL = _cf.ThreadPoolExecutor(max_workers=32)
+
 RUNS_DIR = Path("evals/runs")
 
 
@@ -93,7 +96,7 @@ def main():
 
         t0 = time.time()
         try:
-            r = inspect(golden, test)
+            r = _POOL.submit(inspect, golden, test).result(timeout=150)   # watchdog: a hung call can't freeze the run
         except Exception as e:
             print(f"[{pair.name}] ERROR: {e}")
             rows.append({"pair": pair.name, "error": str(e)})

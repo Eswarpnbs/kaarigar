@@ -1,0 +1,16 @@
+{
+  "run": "20261015_2232_casting_100",
+  "model": "gemini-2.5-flash",
+  "pairs": 98,
+  "errors": 2,
+  "detection_accuracy_pct": 79.6,
+  "defect_recall_pct": 96.0,
+  "safe_outcome_pct": 96.0,
+  "false_alarm_pct": 37.5,
+  "good_escalated_pct": 2.1,
+  "loc_hit_pct": null,
+  "avg_defect_coverage": null,
+  "avg_box_precision": null,
+  "whole_part_boxes": 0,
+  "avg_latency_s": 18.555
+}

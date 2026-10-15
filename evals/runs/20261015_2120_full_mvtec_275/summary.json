@@ -1,0 +1,16 @@
+{
+  "run": "20261015_2120_full_mvtec_275",
+  "model": "gemini-2.5-flash",
+  "pairs": 270,
+  "errors": 5,
+  "detection_accuracy_pct": 78.9,
+  "defect_recall_pct": 86.6,
+  "safe_outcome_pct": 92.3,
+  "false_alarm_pct": 47.5,
+  "good_escalated_pct": 0.0,
+  "loc_hit_pct": 73.6,
+  "avg_defect_coverage": 0.485,
+  "avg_box_precision": 0.152,
+  "whole_part_boxes": 3,
+  "avg_latency_s": 24.443
+}
