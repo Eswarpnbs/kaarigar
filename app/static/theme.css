@@ -143,3 +143,7 @@ input,select{background:var(--graphite)!important;color:var(--chalk)!important;b
 .flash{outline:3px solid var(--tag)!important;outline-offset:3px}
 @keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.cause{animation:none}}
+#route li.next{border:1px dashed var(--tag);color:var(--tag)}
+#route li.next::after{content:"after approval";position:absolute;left:50%;bottom:-15px;transform:translateX(-50%);
+  font:500 11px/1 'Hind',sans-serif;color:var(--tag);white-space:nowrap}
+#route{padding-bottom:16px}

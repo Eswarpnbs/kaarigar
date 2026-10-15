@@ -86,7 +86,7 @@ class EightD(BaseModel):
 
 PROMPT_8D = """You are drafting an 8D corrective-action report for a small machine shop, as an
 experienced quality engineer would. Use ONLY the evidence below. Be concise and specific.
-- Where information is unknown (names, quantities, dates), write "To be confirmed by supervisor".
+- Where information is unknown (names, quantities, dates), never invent it and never insert a placeholder mid-sentence. Write the sentence naturally and end it with "(supervisor to confirm)", e.g. "Re-inspect all Flange nut FN-24 parts made on M1 since the problem started (supervisor to confirm the start time)."
 - D1: list roles, not names.
 - D3 containment must protect the customer now: segregate and re-inspect suspect parts made on this
   machine since the problem started; stop the machine if the diagnosis marks it immediate.

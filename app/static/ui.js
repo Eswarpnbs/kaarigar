@@ -8,11 +8,13 @@
   const rc = document.createElement('div'); rc.id = 'route'; rc.setAttribute('aria-label', 'Kaarigar loop');
   rc.innerHTML = '<span class="rc-title">Route card</span><ol>' + STEPS.map(([k, n]) => `<li data-s="${k}">${n}</li>`).join('') + '</ol>';
   document.querySelector('header').after(rc);
-  window._rcReset = () => rc.querySelectorAll('li').forEach(l => l.classList.remove('done', 'now'));
+  window._rcReset = () => rc.querySelectorAll('li').forEach(l => l.classList.remove('done', 'now', 'next'));
   function stamp(agent, name) {
     let s = MAP[name]; if (agent === 'Kaarigar' && name === 'factory_memory') s = 'learn'; if (!s) return;
     rc.querySelectorAll('li.now').forEach(l => l.classList.remove('now'));
     const li = rc.querySelector(`li[data-s="${s}"]`); if (li) li.classList.add('done', 'now');
+    const v = rc.querySelector('li[data-s="verify"]');
+    if (s === 'act' && v && !v.classList.contains('done')) v.classList.add('next'); if (s === 'verify' && v) v.classList.remove('next');
   }
   const _tool = window.tool;
   window.tool = function (a, n) { try { stamp(a, n); } catch (e) {} return _tool.apply(this, arguments); };
@@ -183,7 +185,7 @@
   };
 })();
 (function () {
-  const nice = s => s.startsWith('machine_health:') ? s.split(':')[1] + ' vibration' : s === 'pattern_hints' ? 'Bearing-wear pattern'
+  const nice = s => s.startsWith('forecast:') ? s.split(':')[1] + ' forecast' : s.startsWith('machine_health:') ? s.split(':')[1] + ' vibration' : s === 'pattern_hints' ? 'Bearing-wear pattern'
     : s.startsWith('past_defect:L-') ? 'Learned from a past fix' : s.startsWith('past_defect:') ? 'Past case ' + s.split(':')[1].split('-').slice(0, 2).join('-') : s === 'recurrence_check' ? 'Repeat problem'
     : s.startsWith('supplier') ? 'Supplier history' : s;
   function showCause(rep) {
