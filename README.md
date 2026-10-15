@@ -38,3 +38,6 @@ Press **▶ Try the demo** (machine story) or **▶ Real factory part (Peenya)**
 - **Honest data.** Machine sensor data is **SIMULATED**; past defect records and SOPs are **SYNTHETIC samples**. Every screen says so.
 
 ## Architecture
+## Security and secrets
+- **No secrets in this repository.** Server credentials come from the Cloud Run service identity (Application Default Credentials); there are no service-account keys, `.env` files or client secrets in Git.
+- The `apiKey` in `app/static/index.html` and `firebase-messaging-sw.js` is the **Firebase web configuration**, which is public by design: it only identifies the Firebase project. It is **restricted to our own domains** in Google Cloud, and every sensitive action is protected server-side: supervisor approvals require a **verified Firebase Authentication token**, and live AI calls pass through a **per-visitor budget guard** (Firestore counters).
