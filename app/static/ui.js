@@ -96,3 +96,24 @@
   document.getElementById('homeBtn').onclick = window.showHome; document.querySelector('.logo').onclick = window.showHome;
   window.showHome();
 })();
+(function () {
+  const flow = document.getElementById('flow');
+  function addCompare() {
+    if (flow.querySelector('.cmp')) return;
+    const t = flow.querySelector('img[src*="/image/test"]'), g = flow.querySelector('img[src*="/image/golden"]');
+    if (!t || !g || !t.parentElement) return;
+    const box = document.createElement('div'); box.className = 'cmp';
+    box.innerHTML = `<p class="small">Drag across the photo to compare the good part with this part.</p>
+      <div class="cmp-stage"><img src="${t.src}" alt="Part being checked"><img class="g" src="${g.src}" alt="Golden sample">
+      <span class="cmp-l">Golden sample</span><span class="cmp-r">This part</span><div class="cmp-bar"></div>
+      <input type="range" min="0" max="100" value="50" aria-label="Compare the golden sample with this part"></div>`;
+    t.parentElement.after(box);
+    const st = box.querySelector('.cmp-stage'), r = box.querySelector('input');
+    r.oninput = () => st.style.setProperty('--p', r.value + '%');
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {      // one reveal sweep: 100% -> 50%
+      let v = 100; const step = () => { v -= 2; st.style.setProperty('--p', v + '%'); r.value = v; if (v > 50) requestAnimationFrame(step); };
+      setTimeout(() => requestAnimationFrame(step), 400);
+    }
+  }
+  new MutationObserver(addCompare).observe(flow, { childList: true, subtree: true });
+})();
