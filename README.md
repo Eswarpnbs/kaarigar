@@ -64,6 +64,7 @@ Press **▶ Try the demo** (machine story) or **▶ Real factory part (Peenya)**
 - **Cost.** ₹0.46 per inspection, measured from real token usage (`evals/cost.py`); about ₹1,300 a month for a typical shop. A per-visitor budget guard (80 live calls/hour, 600/day) protects the credits; cached demo paths are free.
 - **Vector search.** One shop's Factory Memory is hundreds of records, so Gemini embeddings live in Firestore with hybrid keyword + meaning search. At cluster scale (many shops sharing supplier signals), we would move to Firestore vector search or AlloyDB AI with ScaNN.
 - **Agent sessions.** *Ask Kaarigar* stores conversation memory in **Agent Platform's managed session service** (Agent Engine), so follow-up questions keep their context across Cloud Run instances. If the session service is unavailable, it falls back to in-memory sessions automatically; the agents may recommend actions but never execute them.
+- **Localization on real photos.** An extra single-image pass places defect boxes on real (non-square) phone photos, where box placement drifted in multi-image prompts. Benchmarked on 58 MVTec pairs: applying it everywhere lowered box hits (85% to 74%), so it runs only on real photos.
 - **Reliability.** Warm Cloud Run instance with session affinity; uptime check every 5 minutes with email alerts; budget alerts; smoke tests gate every deploy; evaluation runs use a per-call watchdog.
 
 ## Evaluation

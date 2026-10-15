@@ -54,7 +54,7 @@
     f.querySelectorAll('[data-go]').forEach(b => b.onclick = () => document.getElementById(b.dataset.go).click());
     fetch('/api/parts').then(r => r.json()).then(d => {
       const ps = d.parts.filter(p => !p.part_id.startsWith('upload_')).slice(0, 8);
-      document.getElementById('wall').innerHTML = ps.map((p, i) => `<button class="pin" data-p="${p.part_id}" style="--tilt:${[-1.2, .8, -.5, 1.1][i % 4]}deg" aria-label="Inspect ${p.part_id}">
+      if (!document.getElementById('wall')) return; document.getElementById('wall').innerHTML = ps.map((p, i) => `<button class="pin" data-p="${p.part_id}" style="--tilt:${[-1.2, .8, -.5, 1.1][i % 4]}deg" aria-label="Inspect ${p.part_id}">
         <img src="/api/parts/${p.part_id}/image/test" alt="" loading="lazy"><img class="gold" src="/api/parts/${p.part_id}/image/golden" alt="Golden sample">
         <span class="ok-tag">OK</span><span class="pin-name">${p.product.split('(')[0].trim()}</span>
         <span class="pin-m">${p.machine_id === 'IN' ? 'Incoming material' : p.machine_id}</span></button>`).join('');
@@ -198,7 +198,12 @@
       <div class="cause-acts"><button class="primary" id="causeGo">Review and approve the fix</button><button id="causeMore">See the full report</button></div>`;
     setTimeout(() => {
       box.appendChild(card);
-      card.querySelector('#causeMore').onclick = () => document.querySelector('#flow .step')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      card.querySelector('#causeMore').onclick = () => {
+        const steps = [...document.querySelectorAll('#flow .step')];
+        const t = steps.find(s => /diagnos/i.test((s.querySelector('h2') || {}).textContent || '')) || steps[0]; if (!t) return;
+        window.scrollTo({ top: t.getBoundingClientRect().top + window.scrollY - 90, behavior: 'smooth' });
+        t.classList.add('flash'); setTimeout(() => t.classList.remove('flash'), 2200);
+      };
       card.querySelector('#causeGo').onclick = () => {
         const btns = [...document.querySelectorAll('#flow button')].filter(b => !b.closest('.cause'));
         const t = btns.find(b => /approve/i.test(b.textContent)) || btns.find(b => /work order/i.test(b.textContent));
@@ -225,4 +230,273 @@
   }
   new MutationObserver(label).observe(document.getElementById('flow'), { childList: true, subtree: true });
   label();
+})();
+(function () {
+  const wall = window.showHome; window.showWall = wall;
+  const go = id => document.getElementById(id).click();
+  window.showFloor = function () {
+    window._rcReset && window._rcReset();
+    document.getElementById('log').innerHTML = '<div class="small">Each step the agents take appears here.</div>';
+    const f = document.getElementById('flow');
+    f.innerHTML = `<div id="homeAlert" class="home-alert" hidden></div>
+    <h1 class="floor-h">Your shop floor, live</h1><p class="floor-sub">Every station is a Kaarigar tool. Tap a machine, a bench or a board.</p>
+    <div class="floor"><div class="fcol">
+      <section class="zone" style="--z:#F28C00"><span class="zone-l">Inspection bench</span>
+        <button class="primary cta-big" data-go="ownBtn">📷 Check a part</button>
+        <button class="tool" data-go="demoBtn"><i>▶</i>Watch the full loop</button>
+        <button class="tool" data-go="realBtn"><i>🏭</i>Real factory part (Peenya)</button>
+        <button class="tool" data-go="calBtn"><i>📏</i>Check a measurement</button>
+        <button class="tool" data-go="micBtn"><i>🎙</i>Report a problem by voice</button></section>
+      <section class="zone" style="--z:#1E9E4A"><span class="zone-l">Quality board</span><div class="mini-wall" id="miniWall"></div>
+        <button class="tool" id="fullWall"><i>📌</i>Open the golden sample wall</button></section>
+      <section class="zone" style="--z:#D7261E"><span class="zone-l">Red tag area</span>
+        <div class="bin"><b id="rtCount">–</b><span class="small">defects caught and held back from customers</span></div></section>
+    </div><div class="aisle" aria-hidden="true"><span></span><span></span><span></span></div><div class="fcol">
+      <section class="zone" style="--z:#FFFFFF;--zt:#1B2420"><span class="zone-l">Machine bay</span><div class="bay" id="bay"></div></section>
+      <div class="fpair">
+        <section class="zone" style="--z:#2E5E4E"><span class="zone-l">Supervisor cabin</span>
+          <button class="tool" data-go="askBtn"><i>💬</i>Ask Kaarigar</button>
+          <button class="tool" id="woTool"><i>🗂</i>Waiting for approval<span class="badge" id="woBadge" hidden></span></button>
+          <button class="tool" data-go="hoBtn"><i>🌅</i>Shift handover</button>
+          <button class="tool" data-go="alertBtn"><i>📳</i>Phone alerts</button></section>
+        <section class="zone" style="--z:#1D63B8"><span class="zone-l">Stores and gate</span>
+          <button class="tool" data-go="supBtn"><i>📊</i>Supplier scorecard</button>
+          <button class="tool" data-go="ppBtn"><i>🏷️</i>Quality Passport</button>
+          <button class="tool" data-go="regBtn"><i>📒</i>Import paper register</button></section>
+      </div>
+      <section class="zone" style="--z:#4A5650"><span class="zone-l">Training corner</span>
+        <button class="tool" data-go="teachBtn"><i>🎓</i>Kaarigar Teaches: a guide for a new operator</button></section>
+    </div></div>`;
+    f.querySelectorAll('[data-go]').forEach(b => b.onclick = () => go(b.dataset.go));
+    f.querySelector('#fullWall').onclick = () => wall();
+    f.querySelector('#woTool').onclick = () => { go('askBtn'); setTimeout(() => { const q = 'What is waiting for my approval?'; document.getElementById('askQ').value = q; runAsk(q); }, 60); };
+    window._floorData && window._floorData();
+  };
+})();
+(function () {
+  const go = id => document.getElementById(id).click();
+  const openPart = id => { const el = [...document.getElementById('parts').children].find(e => e.textContent.includes(id)); if (el) el.click(); };
+  window._floorData = function () {
+    fetch('/api/factory').then(r => r.json()).then(j => {
+      const ms = j.machines || j || []; const bay = document.getElementById('bay'); if (!bay || bay.dataset.map) return;
+      bay.innerHTML = ms.map(m => { const s = String(m.status || m.health || '').toLowerCase();
+        const lvl = /crit/.test(s) ? 'r' : /warn|watch|elev/.test(s) ? 'a' : 'g';
+        return `<button class="mach ${lvl === 'r' ? 'crit' : ''}" data-m="${m.machine_id}" aria-label="${m.machine_id} ${s}">
+          <div class="body"><span class="chuck"></span><span class="tower"><i class="lamp r ${lvl === 'r' ? 'on' : ''}"></i><i class="lamp a ${lvl === 'a' ? 'on' : ''}"></i><i class="lamp g ${lvl === 'g' ? 'on' : ''}"></i></span></div>
+          <div class="mn">${m.machine_id}</div><div class="mv">${esc(m.name || '')}</div><div class="mv">${esc(s)}</div></button>`; }).join('');
+      bay.querySelectorAll('.mach').forEach(b => b.onclick = () => go('mapBtn'));
+    }).catch(() => {});
+    fetch('/api/parts').then(r => r.json()).then(d => {
+      const mw = document.getElementById('miniWall'); if (!mw) return;
+      mw.innerHTML = d.parts.filter(p => !p.part_id.startsWith('upload_')).slice(0, 6).map((p, i) =>
+        `<button class="pin" data-p="${p.part_id}" style="--tilt:${[-1.5, 1, -.6, 1.3, -1, .7][i]}deg" aria-label="Inspect ${p.part_id}"><img src="/api/parts/${p.part_id}/image/test" alt=""><img class="gold" src="/api/parts/${p.part_id}/image/golden" alt="Golden sample"><span class="ok-tag">OK</span><span class="pin-cap">${esc(p.product.split('(')[0].trim())}</span></button>`).join('');
+      mw.querySelectorAll('.pin').forEach(b => b.onclick = () => openPart(b.dataset.p));
+    }).catch(() => {});
+    fetch('/api/impact').then(r => r.json()).then(j => { const n = j.defects_caught ?? j.defects ?? j.caught; if (n != null) document.getElementById('rtCount').textContent = n; }).catch(() => {});
+    fetch('/api/work-orders').then(r => r.json()).then(j => { const a = Array.isArray(j) ? j : (j.work_orders || []);
+      const n = a.filter(w => w.status === 'pending_approval').length; const b = document.getElementById('woBadge'); if (b && n) { b.textContent = n; b.hidden = false; } }).catch(() => {});
+    const box = document.getElementById('homeAlert'); const bad = document.querySelector('#factory .chip.bad');
+    if (box && bad) { box.innerHTML = `<span class="pulse"></span><span><b>${(bad.parentElement.textContent.match(/M\d/) || [''])[0]}</b> ${bad.textContent.trim()}</span><button id="alSee">See why</button>`; box.hidden = false; document.getElementById('alSee').onclick = () => go('mapBtn'); }
+  };
+  window.showHome = () => (window.matchMedia('(min-width:761px)').matches ? window.showFloor() : window.showWall());
+  document.getElementById('homeBtn').onclick = window.showHome; document.querySelector('.logo').onclick = window.showHome;
+  window.showHome();
+})();
+(function () {
+  const base = window.showFloor;
+  window.showFloor = function () {
+    base();
+    const f = document.getElementById('flow'), floor = f.querySelector('.floor'); if (!floor || f.querySelector('.bldg')) return;
+    const [left, , right] = floor.children, pair = right.querySelector('.fpair');
+    const train = [...right.children].find(s => s.textContent.includes('Training'));
+    const red = [...left.children].find(s => s.textContent.includes('Red tag'));
+    right.appendChild(red);
+    const sb = document.createElement('section'); sb.className = 'zone'; sb.style.setProperty('--z', '#4A5650');
+    sb.innerHTML = '<span class="zone-l">Tool shadow board</span><div class="shadow-board" aria-hidden="true"><span>🔧</span><span>🔩</span><span>⚙️</span><span>📏</span><span>🪛</span><span>🔨</span></div>';
+    right.appendChild(sb);
+    const office = document.createElement('div'); office.className = 'office'; office.append(...pair.children); office.appendChild(train); pair.remove();
+    const b = document.createElement('div'); b.className = 'bldg';
+    const teeth = [0, 166, 332, 498, 664, 830];
+    b.innerHTML = `<div class="roof" aria-hidden="true"><svg viewBox="0 0 1000 72" preserveAspectRatio="none">
+        <polygon points="0,72 0,40 ${teeth.map(x => `${x},40 ${x + 166},6 ${x + 166},40`).join(' ')} 1000,72" fill="#7C8A83"/>
+        ${teeth.map(x => `<rect x="${x + 158}" y="9" width="7" height="30" fill="#BFD8E6"/>`).join('')}</svg></div>
+      <div class="chimney" aria-hidden="true"><span class="puff"></span><span class="puff"></span><span class="puff"></span></div>
+      <div class="vent" aria-hidden="true">⚙️</div><div class="pipe" aria-hidden="true"></div>
+      <nav class="lift" aria-label="Floors"><button data-l="lvl1" aria-label="Level 1, office">1</button><button data-l="lvl0" aria-label="Ground floor, production">G</button></nav>
+      <div class="level" id="lvl1"><span class="lvl-tag">Level 1 · Office</span></div><div class="slab"></div>
+      <div class="level" id="lvl0"><span class="lvl-tag">Ground floor · Production</span></div><div class="ground"></div>`;
+    floor.before(b); b.querySelector('#lvl1').appendChild(office); b.querySelector('#lvl0').appendChild(floor);
+    b.querySelectorAll('.lift button').forEach(x => x.onclick = () => { const l = document.getElementById(x.dataset.l);
+      l.scrollIntoView({ behavior: 'smooth', block: 'start' }); l.classList.add('lit'); setTimeout(() => l.classList.remove('lit'), 1500); });
+  };
+  window.showHome = () => (window.matchMedia('(min-width:761px)').matches ? window.showFloor() : window.showWall());
+  document.getElementById('homeBtn').onclick = window.showHome; document.querySelector('.logo').onclick = window.showHome;
+  window.showHome();
+})();
+(function () {
+  const ICON = { ownBtn: 'camera', demoBtn: 'player-play', realBtn: 'building-factory-2', calBtn: 'ruler-measure', micBtn: 'microphone',
+    askBtn: 'message-chatbot', hoBtn: 'arrows-exchange', alertBtn: 'device-mobile-vibration', supBtn: 'chart-bar', ppBtn: 'certificate',
+    regBtn: 'notebook', teachBtn: 'school' };
+  const base = window.showFloor;
+  window.showFloor = function () {
+    base();
+    const b = document.querySelector('#flow .bldg'); if (!b) return;
+    b.querySelectorAll('.roof,.chimney,.vent,.pipe,.lift').forEach(e => e.remove());
+    [...b.querySelectorAll('.zone')].filter(z => z.textContent.includes('Tool shadow board')).forEach(z => z.remove());
+    b.querySelectorAll('[data-go]').forEach(btn => { const n = ICON[btn.dataset.go]; if (!n) return;
+      const old = btn.querySelector('i'); const ic = `<i class="ti ti-${n}" aria-hidden="true"></i>`;
+      if (old) old.outerHTML = ic; else btn.innerHTML = ic + btn.textContent.replace(/^[^\w]+/, '').trim(); });
+    const swap = (sel, n) => { const e = b.querySelector(sel); if (e) { const i = e.querySelector('i'); if (i) i.outerHTML = `<i class="ti ti-${n}" aria-hidden="true"></i>`; } };
+    swap('#woTool', 'clipboard-check'); swap('#fullWall', 'layout-grid');
+    const zones = [...b.querySelectorAll('.office .zone')];
+    const cabin = zones.find(z => z.textContent.includes('Supervisor')), train = zones.find(z => z.textContent.includes('Training'));
+    if (cabin && train) { cabin.append(...train.querySelectorAll('button')); train.remove(); }
+  };
+  window.showHome = () => (window.matchMedia('(min-width:761px)').matches ? window.showFloor() : window.showWall());
+  document.getElementById('homeBtn').onclick = window.showHome; document.querySelector('.logo').onclick = window.showHome;
+  window.showHome();
+})();
+(function () {
+  const base = window.showFloor;
+  window.showFloor = function () {
+    base();
+    const b = document.querySelector('#flow .bldg'); if (!b) return;
+    const l0 = b.querySelector('#lvl0'), l1 = b.querySelector('#lvl1'), slab = b.querySelector('.slab');
+    if (l0 && l1 && slab) { b.prepend(l0); l0.after(slab); slab.after(l1); }
+    const t0 = l0 && l0.querySelector('.lvl-tag'), t1 = l1 && l1.querySelector('.lvl-tag');
+    if (t0) t0.textContent = 'Production floor'; if (t1) t1.textContent = 'Office, upstairs';
+  };
+  const flow = document.getElementById('flow');
+  new MutationObserver(() => document.body.classList.toggle('home', !!flow.querySelector('.bldg'))).observe(flow, { childList: true });
+  window.showHome = () => (window.matchMedia('(min-width:761px)').matches ? window.showFloor() : window.showWall());
+  document.getElementById('homeBtn').onclick = window.showHome; document.querySelector('.logo').onclick = window.showHome;
+  window.showHome();
+})();
+(function () {
+  const base = window.showFloor;
+  window.showFloor = function () {
+    base();
+    const floor = document.querySelector('#flow .floor'), office = document.querySelector('#flow .office'); if (!floor || !office) return;
+    const right = floor.children[2]; const pair = document.createElement('div'); pair.className = 'fpair';
+    pair.append(...office.querySelectorAll(':scope > .zone')); right.appendChild(pair);
+  };
+  window.showHome = () => (window.matchMedia('(min-width:761px)').matches ? window.showFloor() : window.showWall());
+  document.getElementById('homeBtn').onclick = window.showHome; document.querySelector('.logo').onclick = window.showHome;
+  window.showHome();
+})();
+(function () {
+  const base = window._floorData;
+  window._floorData = function () {
+    base();
+    fetch('/api/map').then(r => r.json()).then(j => {
+      const bay = document.getElementById('bay'); if (!bay || !j.machines) return; bay.dataset.map = 1;
+      bay.innerHTML = j.machines.map(m => {
+        const lvl = m.health === 'critical' ? 'r' : /warn|watch/.test(m.health || '') ? 'a' : 'g';
+        const h = (m.history || []).slice(-24).map(x => x.v), lim = 4.5, lo = Math.min(...h, 0.5), hi = Math.max(...h, lim);
+        const y = v => (30 - (v - lo) / (hi - lo) * 30).toFixed(1);
+        const pts = h.map((v, i) => `${(i / Math.max(h.length - 1, 1) * 100).toFixed(1)},${y(v)}`).join(' ');
+        const risk = m.hours_to_zone_d != null ? `<div class="risk">Damage zone in ~${Math.round(m.hours_to_zone_d)} h</div>` : `<div class="mv">${esc(m.trend || '')}</div>`;
+        return `<button class="mach ${lvl === 'r' ? 'crit' : ''}" data-m="${m.machine_id}" aria-label="${m.machine_id}, ${m.latest_vibration} millimetres per second, zone ${m.zone}">
+          <div class="body"><span class="tower"><i class="lamp r ${lvl === 'r' ? 'on' : ''}"></i><i class="lamp a ${lvl === 'a' ? 'on' : ''}"></i><i class="lamp g ${lvl === 'g' ? 'on' : ''}"></i></span>
+            <div class="rd"><b>${Number(m.latest_vibration).toFixed(2)}</b><small>mm/s</small></div>
+            <svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true"><line x1="0" x2="100" y1="${y(lim)}" y2="${y(lim)}"/><polyline points="${pts}"/></svg></div>
+          <div class="mn">${m.machine_id}<span class="zc ${m.zone}">Zone ${m.zone}</span></div><div class="mv">${esc(m.name || '')}</div>${risk}</button>`;
+      }).join('');
+      bay.querySelectorAll('.mach').forEach(b => b.onclick = () => document.getElementById('mapBtn').click());
+    }).catch(() => {});
+  };
+  window.showHome();
+})();
+(function () {
+  const base = window.showFloor;
+  window.showFloor = function () {
+    base();
+    const floor = document.querySelector('#flow .floor'); if (!floor || floor.classList.contains('grid5s')) return;
+    const zones = [...floor.querySelectorAll('.zone')], find = t => zones.find(z => (z.querySelector('.zone-l') || {}).textContent?.includes(t));
+    const areas = { bench: find('Inspection'), board: find('Quality'), red: find('Red tag'), bay: find('Machine'), cabin: find('Supervisor'), store: find('Stores') };
+    const aisle = floor.querySelector('.aisle'); floor.innerHTML = ''; floor.classList.add('grid5s');
+    Object.entries(areas).forEach(([k, z]) => { if (z) { z.style.gridArea = k; floor.appendChild(z); } });
+    if (aisle) { aisle.style.gridArea = 'aisle'; floor.appendChild(aisle); }
+  };
+  window.showHome();
+})();
+(function () {
+  const hdr = document.querySelector('header'), tag = hdr.querySelector('.tag');
+  const live = document.createElement('span'); live.id = 'hdrLive'; live.innerHTML = '<i></i>Live'; (tag || hdr.firstChild).after(live);
+  fetch('/api/map').then(r => r.json()).then(j => { const ms = j.machines || [], c = ms.filter(m => m.health === 'critical').length;
+    live.innerHTML = `<i></i>Live · ${ms.length} machines${c ? ` · ${c} critical` : ''}`; live.classList.toggle('bad', c > 0); }).catch(() => {});
+  const LBL = { defects_caught: 'Defects caught', repeat_problems: 'Repeat problems found', fixes_verified: 'Fixes verified',
+    lessons_learned: 'Lessons learned', sops_improved: 'SOPs improved', ai_cost_today_inr: 'Live AI cost today (₹)' };
+  const nice = k => LBL[k] || k.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
+  const base = window.showFloor;
+  window.showFloor = function () {
+    base();
+    const floor = document.querySelector('#flow .floor.grid5s'); if (!floor || floor.querySelector('.stack')) return;
+    const zs = [...floor.querySelectorAll(':scope > .zone')], f = t => zs.find(z => z.querySelector('.zone-l').textContent.includes(t));
+    const store = f('Stores'), red = f('Red tag'); if (!store || !red) return;
+    const st = document.createElement('div'); st.className = 'stack'; st.style.gridArea = 'store'; store.style.gridArea = red.style.gridArea = '';
+    const sb = document.createElement('section'); sb.className = 'zone'; sb.style.setProperty('--z', '#4A5650');
+    sb.innerHTML = '<span class="zone-l">Shift board</span><div class="kpis" id="kpis"></div>';
+    floor.appendChild(st); st.append(store, red, sb);
+    fetch('/api/impact').then(r => r.json()).then(j => {
+      const el = document.getElementById('kpis'); if (!el) return;
+      el.innerHTML = Object.entries(j).filter(([, v]) => typeof v === 'number').slice(0, 6)
+        .map(([k, v]) => `<div class="kpi"><b>${Math.round(v * 100) / 100}</b><span>${esc(nice(k))}</span></div>`).join('');
+    }).catch(() => {});
+  };
+  window.showHome();
+})();
+(function () {
+  const base = window.showFloor;
+  window.showFloor = function () {
+    base();
+    const h = document.querySelector('#flow .floor-h'); if (!h || document.querySelector('#flow .demo-cta')) return;
+    const top = document.createElement('div'); top.className = 'floor-top'; h.before(top);
+    const txt = document.createElement('div'); txt.append(h, document.querySelector('#flow .floor-sub')); top.appendChild(txt);
+    const b = document.createElement('button'); b.className = 'demo-cta';
+    b.innerHTML = '<i class="ti ti-player-play" aria-hidden="true"></i>Try the demo: the full loop in 60 seconds';
+    b.onclick = () => document.getElementById('demoBtn').click(); top.appendChild(b);
+  };
+  window.showHome();
+})();
+(function () {
+  const _gt = window.showGT;
+  window.showGT = async function (partId) {
+    await _gt.apply(this, arguments);
+    const ov = document.querySelector('#s1 img[alt="expert defect mask"]'), btn = document.getElementById('gtBtn'); if (!ov || !btn) return;
+    const wrap = ov.parentElement; wrap.style.position = 'relative';
+    const c = document.createElement('canvas'); c.setAttribute('aria-label', 'Expert defect area');
+    c.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;display:none';
+    const img = new Image();
+    img.onload = () => { c.width = img.naturalWidth; c.height = img.naturalHeight; const x = c.getContext('2d'); x.drawImage(img, 0, 0);
+      const d = x.getImageData(0, 0, c.width, c.height);
+      for (let i = 0; i < d.data.length; i += 4) { const on = d.data[i] > 127; d.data[i] = 43; d.data[i + 1] = 212; d.data[i + 2] = 107; d.data[i + 3] = on ? 150 : 0; }
+      x.putImageData(d, 0, 0); };
+    img.src = ov.src; ov.remove(); wrap.appendChild(c);
+    btn.onclick = () => { const on = c.style.display === 'none'; c.style.display = on ? 'block' : 'none';
+      btn.textContent = on ? '🎯 Hide ground truth' : '🎯 Ground truth'; btn.classList.toggle('primary', on); };
+  };
+})();
+(function () {
+  function numberBoard() {
+    const caps = [...document.querySelectorAll('#miniWall .pin-cap')]; if (!caps.length || caps.every(c => c.dataset.n)) return;
+    const base = caps.map(c => c.textContent.replace(/ · sample \d+$/, '')), total = {}, n = {};
+    base.forEach(t => total[t] = (total[t] || 0) + 1);
+    caps.forEach((c, i) => { const t = base[i]; n[t] = (n[t] || 0) + 1; c.textContent = total[t] > 1 ? `${t} · sample ${n[t]}` : t; c.dataset.n = 1; });
+  }
+  new MutationObserver(numberBoard).observe(document.getElementById('flow'), { childList: true, subtree: true });
+  numberBoard();
+})();
+(function () {   // "Check a measurement": explain instead of doing nothing when no photo is chosen
+  document.addEventListener('click', e => {
+    const b = e.target.closest('#calGo'); if (!b) return;
+    const fi = document.querySelector('#flow input[type=file]');
+    if (fi && !fi.files.length) {
+      e.stopImmediatePropagation(); e.preventDefault();
+      let m = document.getElementById('calNeed');
+      if (!m) { m = document.createElement('p'); m.id = 'calNeed'; m.style.cssText = 'color:#A3201A;font-weight:600;margin:6px 0'; b.after(m); }
+      m.textContent = 'Take or choose a photo of the caliper display first.';
+      fi.addEventListener('change', () => m.remove(), { once: true });
+    }
+  }, true);
 })();

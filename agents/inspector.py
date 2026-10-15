@@ -256,6 +256,25 @@ def _detail_scan(golden_imgs: List[Image.Image], test_img: Image.Image) -> List[
 
 
 # ---------------- Main entry ----------------
+LOCATE_PROMPT = ("In THIS photo of the part under inspection, find this defect: {type}: {description}. "
+                 "Return ONE tight box_2d as [ymin, xmin, ymax, xmax], normalized 0-1000, covering the whole defect and nothing else.")
+
+
+class _Box(BaseModel):
+    box_2d: List[int]
+
+
+def _locate(test_img, d):
+    """4. Locate: a focused single-image pass. Multi-image prompts drift; this places boxes more precisely on real photos."""
+    try:
+        b = _generate(MODEL, [_part(test_img), LOCATE_PROMPT.format(type=d.type, description=d.description)], _Box).box_2d
+        if len(b) == 4 and 0 <= min(b) and max(b) <= 1000 and b[2] > b[0] and b[3] > b[1] and (b[2] - b[0]) * (b[3] - b[1]) >= 2000:
+            return b
+    except Exception:
+        pass
+    return None
+
+
 def inspect(golden: Union[Path, Sequence[Path]], test: Path) -> Inspection:
     """Inspect a part photo against one or more golden samples."""
     golden_imgs = [Image.open(p) for p in _resolve_goldens(golden)[:3]]
@@ -299,6 +318,11 @@ def inspect(golden: Union[Path, Sequence[Path]], test: Path) -> Inspection:
             unsure = True
 
     # 4. Decide (asymmetric: dismissing a flag needs high confidence)
+    real_photo = abs(test_img.width / test_img.height - 1) > 0.15   # phone photos; MVTec-style squares keep the verified box
+    for d in (confirmed if real_photo else []):   # 4. locate (single image): fixes box drift on real photos
+        b = _locate(test_img, d)
+        if b:
+            d.box_2d = b
     avg_v = round(sum(verifier_conf) / len(verifier_conf)) if verifier_conf else first.confidence
     if confirmed:
         critical = any(d.severity == "critical" for d in confirmed)
