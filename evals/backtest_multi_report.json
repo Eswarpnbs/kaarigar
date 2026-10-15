@@ -1,0 +1,173 @@
+{
+  "data": "SIMULATED, realistic build-up, separate BigQuery table",
+  "breakdowns": [
+    {
+      "seed": 1,
+      "machine": "M1",
+      "problem": "bearing_wear",
+      "lead_hours": 5.0
+    },
+    {
+      "seed": 1,
+      "machine": "M3",
+      "problem": "bearing_wear",
+      "lead_hours": 7.8
+    },
+    {
+      "seed": 1,
+      "machine": "M4",
+      "problem": "spindle_misalignment",
+      "lead_hours": 2.8
+    },
+    {
+      "seed": 1,
+      "machine": "M2",
+      "problem": "spindle_misalignment",
+      "lead_hours": null
+    },
+    {
+      "seed": 1,
+      "machine": "M5",
+      "problem": "tool_wear",
+      "lead_hours": null
+    },
+    {
+      "seed": 2,
+      "machine": "M1",
+      "problem": "bearing_wear",
+      "lead_hours": 1.0
+    },
+    {
+      "seed": 2,
+      "machine": "M3",
+      "problem": "bearing_wear",
+      "lead_hours": 18.2
+    },
+    {
+      "seed": 2,
+      "machine": "M4",
+      "problem": "spindle_misalignment",
+      "lead_hours": 16.8
+    },
+    {
+      "seed": 2,
+      "machine": "M2",
+      "problem": "spindle_misalignment",
+      "lead_hours": null
+    },
+    {
+      "seed": 2,
+      "machine": "M5",
+      "problem": "tool_wear",
+      "lead_hours": null
+    },
+    {
+      "seed": 3,
+      "machine": "M1",
+      "problem": "bearing_wear",
+      "lead_hours": 7.2
+    },
+    {
+      "seed": 3,
+      "machine": "M3",
+      "problem": "bearing_wear",
+      "lead_hours": 33.0
+    },
+    {
+      "seed": 3,
+      "machine": "M4",
+      "problem": "spindle_misalignment",
+      "lead_hours": 4.2
+    },
+    {
+      "seed": 3,
+      "machine": "M2",
+      "problem": "spindle_misalignment",
+      "lead_hours": null
+    },
+    {
+      "seed": 3,
+      "machine": "M5",
+      "problem": "tool_wear",
+      "lead_hours": null
+    },
+    {
+      "seed": 4,
+      "machine": "M1",
+      "problem": "bearing_wear",
+      "lead_hours": 4.0
+    },
+    {
+      "seed": 4,
+      "machine": "M3",
+      "problem": "bearing_wear",
+      "lead_hours": 24.0
+    },
+    {
+      "seed": 4,
+      "machine": "M4",
+      "problem": "spindle_misalignment",
+      "lead_hours": 4.5
+    },
+    {
+      "seed": 4,
+      "machine": "M2",
+      "problem": "spindle_misalignment",
+      "lead_hours": null
+    },
+    {
+      "seed": 4,
+      "machine": "M5",
+      "problem": "tool_wear",
+      "lead_hours": null
+    },
+    {
+      "seed": 5,
+      "machine": "M1",
+      "problem": "bearing_wear",
+      "lead_hours": 10.5
+    },
+    {
+      "seed": 5,
+      "machine": "M3",
+      "problem": "bearing_wear",
+      "lead_hours": 15.8
+    },
+    {
+      "seed": 5,
+      "machine": "M4",
+      "problem": "spindle_misalignment",
+      "lead_hours": 3.0
+    },
+    {
+      "seed": 5,
+      "machine": "M2",
+      "problem": "spindle_misalignment",
+      "lead_hours": null
+    },
+    {
+      "seed": 5,
+      "machine": "M5",
+      "problem": "tool_wear",
+      "lead_hours": null
+    }
+  ],
+  "summary": {
+    "bearing_wear": {
+      "warned": "10/10",
+      "median_lead_h": 9.15,
+      "min_lead_h": 1.0
+    },
+    "spindle_misalignment": {
+      "warned": "5/10",
+      "median_lead_h": 4.2,
+      "min_lead_h": 2.8
+    },
+    "tool_wear": {
+      "warned": "0/5",
+      "median_lead_h": null,
+      "min_lead_h": null
+    },
+    "false_alarms_on_healthy": "0/19"
+  }
+}
