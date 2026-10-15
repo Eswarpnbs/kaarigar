@@ -890,8 +890,11 @@ def ground_truth(part_id: str):
 
 
 # ---------------- Ask Kaarigar: the ADK agent team, live (read-only) ----------------
+# Conversation sessions live in Agent Platform's managed session service (Agent Engine) when configured,
+# with an automatic fallback to in-memory sessions so Ask Kaarigar never breaks.
 import asyncio as _asyncio
-_ADK = {"runner": None}
+_ADK = {"runner": None, "mem": None, "svc": None, "kind": "in-memory"}
+AGENT_ENGINE_ID = os.environ.get("KAARIGAR_AGENT_ENGINE_ID", "")
 
 
 class AskRequest(BaseModel):
@@ -900,14 +903,36 @@ class AskRequest(BaseModel):
     lang: str = "en-IN"
 
 
+def _make_runner(svc):
+    from google.adk.runners import Runner
+    from adk_app.kaarigar.web_team import web_root
+    return Runner(app_name="kaarigar_web", agent=web_root, session_service=svc, auto_create_session=True)
+
+
 def _adk_runner():
-    if _ADK["runner"] is None:
-        from google.adk.runners import Runner
+    if _ADK["mem"] is None:
         from google.adk.sessions import InMemorySessionService
-        from adk_app.kaarigar.web_team import web_root
-        _ADK["runner"] = Runner(app_name="kaarigar_web", agent=web_root,
-                                session_service=InMemorySessionService(), auto_create_session=True)
+        _ADK["mem"] = _ADK["runner"] = _make_runner(InMemorySessionService())
+        if AGENT_ENGINE_ID:
+            try:
+                from google.adk.sessions import VertexAiSessionService
+                _ADK["svc"] = VertexAiSessionService(project=os.environ.get("GOOGLE_CLOUD_PROJECT", "kaarigar-510716"),
+                                                      location="us-central1", agent_engine_id=AGENT_ENGINE_ID)
+                _ADK["runner"], _ADK["kind"] = _make_runner(_ADK["svc"]), "agent-platform"
+            except Exception as e:
+                print("Agent Platform sessions unavailable, using in-memory:", type(e).__name__)
     return _ADK["runner"]
+
+
+async def _run_agent(runner, sid, msg, trace, answer):
+    async for ev in runner.run_async(user_id="web", session_id=sid, new_message=msg):
+        for fc in (ev.get_function_calls() or []):
+            trace.append({"agent": ev.author, "tool": fc.name, "args": {k: str(v)[:60] for k, v in (fc.args or {}).items()}})
+        if ev.is_final_response() and ev.content and ev.content.parts:
+            t = "".join(getattr(p, "text", "") or "" for p in ev.content.parts).strip()
+            if t:
+                answer["text"] = t
+                trace.append({"agent": ev.author, "tool": None, "args": {}})
 
 
 @app.post("/api/ask")
@@ -917,29 +942,32 @@ async def ask(req: AskRequest):
     q = req.question.strip()[:800]
     if not q:
         raise HTTPException(400, "Please type a question.")
-    sid = req.session_id or uuid.uuid4().hex[:12]
-    msg = _t.Content(role="user", parts=[_t.Part(text=f"[Answer in {'English' if req.lang == 'en-IN' else LANG_NAMES_L.get(req.lang, 'English')}] {q}")])
+    lang = "English" if req.lang == "en-IN" else LANG_NAMES_L.get(req.lang, "English")
+    msg = _t.Content(role="user", parts=[_t.Part(text=f"[Answer in {lang}] {q}")])
+    runner, kind = _adk_runner(), _ADK["kind"]
     trace, answer = [], {"text": ""}
-
-    async def _run():
-        async for ev in _adk_runner().run_async(user_id="web", session_id=sid, new_message=msg):
-            for fc in (ev.get_function_calls() or []):
-                trace.append({"agent": ev.author, "tool": fc.name,
-                              "args": {k: str(v)[:60] for k, v in (fc.args or {}).items()}})
-            if ev.is_final_response() and ev.content and ev.content.parts:
-                t = "".join(getattr(p, "text", "") or "" for p in ev.content.parts).strip()
-                if t:
-                    answer["text"] = t
-                    trace.append({"agent": ev.author, "tool": None, "args": {}})
-
     try:
-        await _asyncio.wait_for(_run(), timeout=55)
+        if kind == "agent-platform":
+            sid = req.session_id[3:] if req.session_id.startswith("ap:") else ""
+            if not sid:
+                sid = (await _ADK["svc"].create_session(app_name="kaarigar_web", user_id="web")).id
+        else:
+            sid = req.session_id if req.session_id and not req.session_id.startswith("ap:") else uuid.uuid4().hex[:12]
+        await _asyncio.wait_for(_run_agent(runner, sid, msg, trace, answer), timeout=38)
     except _asyncio.TimeoutError:
         raise HTTPException(504, "Kaarigar took too long to answer. Please try a simpler question.")
     except Exception as e:
-        raise HTTPException(503, f"Ask Kaarigar is busy, please try again ({type(e).__name__})")
-    return {"answer": answer["text"] or "I could not find an answer in the factory data.", "trace": trace, "session_id": sid}
-
+        if kind != "agent-platform":
+            raise HTTPException(503, f"Ask Kaarigar is busy, please try again ({type(e).__name__})")
+        print("Agent Platform session error, falling back to in-memory:", type(e).__name__, str(e)[:200])
+        kind, sid, trace, answer = "in-memory", uuid.uuid4().hex[:12], [], {"text": ""}
+        try:
+            await _asyncio.wait_for(_run_agent(_ADK["mem"], sid, msg, trace, answer), timeout=18)
+        except Exception as e2:
+            raise HTTPException(503, f"Ask Kaarigar is busy, please try again ({type(e2).__name__})")
+    out_sid = ("ap:" + sid) if kind == "agent-platform" else sid
+    return {"answer": answer["text"] or "I could not find an answer in the factory data.", "trace": trace,
+            "session_id": out_sid, "sessions": kind}
 
 
 @app.on_event("startup")

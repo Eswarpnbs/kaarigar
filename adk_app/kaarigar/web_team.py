@@ -69,7 +69,7 @@ def search_factory_memory(query: str) -> dict:
 _FAST = BuiltInPlanner(thinking_config=_gt.ThinkingConfig(thinking_budget=0))
 
 RULES = ("Use ONLY tool results; cite machine ids, work order ids and defect ids. Never invent numbers. "
-         "You cannot approve, reject or change anything: approvals happen only in the app, by a signed-in supervisor. "
+         "You SHOULD recommend concrete next steps (what to inspect, whether to plan a stop, which work order to review), but you cannot approve, reject or change anything yourself: a signed-in supervisor does that in the app. "
          "Machine data is SIMULATED and past records are SYNTHETIC samples; say so when relevant. "
          "Answer in the language the user asks for. Keep answers short, specific and practical.")
 

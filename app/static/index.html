@@ -702,7 +702,7 @@ async function runAsk(q){
   const d=await api('/api/ask',{method:'POST',body:{question:q,session_id:askSid,lang:uiLangCode()}});askSid=d.session_id;
   const route=[...new Set(d.trace.map(t=>t.agent))].join(' → ');
   turn.innerHTML=`<p><b>🙋 ${esc(q)}</b></p><div style="white-space:pre-wrap">${mdLite(d.answer)}</div>
-   <p class="small">Agents: ${esc(route)}</p><button id="spkBtn">🔊 Listen</button>`;
+   <p class="small">Agents: ${esc(route)}${d.sessions==='agent-platform'?' · memory: Agent Platform sessions':''}</p><button id="spkBtn">🔊 Listen</button>`;
   d.trace.filter(t=>t.tool).forEach(t=>tool(t.agent,t.tool,Object.entries(t.args).map(([k,v])=>`${k}=${v}`).join(', ')||'—'));
   log('Kaarigar',`Answered by ${route}`);
   turn.querySelector('#spkBtn').onclick=()=>speak(d.answer,uiLangCode());prefetchSpeech(d.answer,uiLangCode());
