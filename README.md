@@ -56,3 +56,21 @@ Press **▶ Try the demo** (machine story) or **▶ Real factory part (Peenya)**
 - **Timing:** a live inspection takes about 20–40 s; *Ask Kaarigar* about 5–15 s.
 - **If Gemini is busy,** Kaarigar retries automatically and falls back to Flash-Lite; the cached demo paths keep working.
 - **Data labels:** machine sensor data is **simulated** and seed defect records are **synthetic** (labelled throughout the app). Factory photos are **real**, from two Bengaluru shops, used with written permission (names, faces, and logos hidden).
+
+## Engineering decisions
+- **Facts in code, language in Gemini.** Forecast hours, ISO 10816 vibration zones, tolerances, supplier ratings and Quality Passport status are computed in Python. Gemini explains and drafts; every citation it makes is validated in code and unsupported claims are removed.
+- **Grounding without web search.** Every answer comes from the shop's own data (BigQuery sensor history, Firestore Factory Memory, SOPs, supplier records), so no outside facts are needed. Guardrails: citation validation, an evidence-strength guard (confidence capped at 70 with a human check when evidence is thin), and supervisor approval for every action.
+- **Latency.** *Ask Kaarigar* answers in about 3–5 s when warm: machine health is cached and refreshed in the background every 4 minutes; routing agents run with thinking off; ADK, embeddings, Firestore and Gemini connections are warmed at startup; all five machine forecasts come from one BigQuery query (~2.7 s), cached for 5 minutes. Inspections use a 60 s timeout, three fast retries, then a Flash-Lite fallback.
+- **Cost.** ₹0.46 per inspection, measured from real token usage (`evals/cost.py`); about ₹1,300 a month for a typical shop. A per-visitor budget guard (80 live calls/hour, 600/day) protects the credits; cached demo paths are free.
+- **Vector search.** One shop's Factory Memory is hundreds of records, so Gemini embeddings live in Firestore with hybrid keyword + meaning search. At cluster scale (many shops sharing supplier signals), we would move to Firestore vector search or AlloyDB AI with ScaNN.
+- **Reliability.** Warm Cloud Run instance with session affinity; uptime check every 5 minutes with email alerts; budget alerts; smoke tests gate every deploy; evaluation runs use a per-call watchdog.
+
+## Evaluation
+| Benchmark | Data | Result |
+|---|---|---|
+| Real factory photos | 9 cases from two Bengaluru shops (written permission) | Defects caught **4/4**; good parts accepted 3/5 |
+| Indian foundry castings | Kaggle, Pilot Technocast impellers, 98 pairs, one golden photo, zero training | Defects caught **96%** (95% CI 87–99%); false alarms 38% (natural casting texture) |
+| MVTec AD | metal nut + screw, all 275 test images | *(results below)* |
+| Predict backtest | 25 **simulated** breakdowns, 5 seeds, model retrained hourly on past data only | Bearing wear warned **10/10**, median **9.2 h** ahead; misalignment 5/10; **0/19** false alarms on healthy machines. Tool wear is not visible in vibration and is caught at inspection instead |
+
+Reproduce: `python -m evals.run_eval <pairs dir> --tag <name>` · `python -m evals.backtest_multi 5` · `python -m evals.real_world` · `python -m evals.cost 95.08`.
