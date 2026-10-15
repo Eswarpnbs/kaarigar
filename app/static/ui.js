@@ -211,3 +211,16 @@
     return d;
   };
 })();
+(function () {
+  function label() {
+    const pins = [...document.querySelectorAll('#wall .pin')];
+    if (!pins.length || pins.every(p => p.querySelector('.chk-tag'))) return;
+    const base = pins.map(p => p.querySelector('.pin-name').textContent.replace(/ · sample \d+$/, '')), total = {}, n = {};
+    base.forEach(t => total[t] = (total[t] || 0) + 1);
+    pins.forEach((p, i) => { const t = base[i]; n[t] = (n[t] || 0) + 1;
+      p.querySelector('.pin-name').textContent = total[t] > 1 ? `${t} · sample ${n[t]}` : t;
+      if (!p.querySelector('.chk-tag')) p.insertAdjacentHTML('beforeend', '<span class="chk-tag">Tap to check</span>'); });
+  }
+  new MutationObserver(label).observe(document.getElementById('flow'), { childList: true, subtree: true });
+  label();
+})();
