@@ -34,7 +34,8 @@ pre{white-space:pre-wrap;font-size:12px;background:#0b0d11;padding:10px;border-r
 code{font-size:11px;color:#fbbf24}
 .i18n-pending{visibility:hidden}
 footer{color:var(--muted);font-size:12px;text-align:center;padding:16px}
-</style></head><body>
+</style><link rel="stylesheet" href="/theme.css">
+</head><body>
 <header><span class="logo">Kaarigar</span><span class="tag">One photo of a good part, one phone, zero training.</span>
 <span class="badge">AI informs · humans decide</span><span class="badge">Machine data SIMULATED · past records SYNTHETIC</span><span id="authBox" class="badge"></span><span id="i18nBusy" class="badge" style="display:none">🌐 translating…</span><select id="lang" style="margin-left:auto;background:#171a21;color:#e8eaed;border:1px solid #262b36;border-radius:6px;padding:3px 6px"><option value="en">EN</option><option value="kn">ಕನ್ನಡ</option><option value="hi">हिन्दी</option><option value="te">తెలుగు</option></select></header>
 <main>
@@ -707,7 +708,7 @@ async function runAsk(q){
  finally{$('#askGo').disabled=false}
 }
 $('#askBtn').onclick=showAsk;
-loadParts();loadFactory();showMap();
+loadParts();loadFactory();
 setTimeout(translatePage,300);
 if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
 </script><script type="module">
@@ -752,4 +753,5 @@ onAuthStateChanged(auth, u => {
 <script src="/passport.js"></script>
 <script>document.getElementById("ppBtn").onclick=showPassport;</script>
 <script>document.getElementById("regBtn").onclick=showRegister;</script>
+<script src="/ui.js"></script>
 </body></html>

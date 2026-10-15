@@ -1,0 +1,84 @@
+/* Kaarigar theme: shop-floor materials. Graphite + steel surfaces, chalk text, QC-tag yellow accent.
+   Type: Hind family (Indian Type Foundry) covers Latin, Devanagari, Kannada (Mysuru), Telugu (Guntur); Teko for readouts. */
+@import url('https://fonts.googleapis.com/css2?family=Hind:wght@400;500;600&family=Hind+Mysuru:wght@400;600&family=Hind+Guntur:wght@400;600&family=Teko:wght@500;600&display=swap');
+:root{--graphite:#1E2328;--steel:#2A3038;--steel-2:#333A44;--line:#3A424D;--chalk:#E6E9EC;--muted:#9AA3AD;
+  --tag:#F2B705;--ok:#3FA36B;--rej:#D64545;--r:10px}
+html,body{background:var(--graphite)!important;color:var(--chalk)}
+body{font-family:'Hind','Hind Mysuru','Hind Guntur',system-ui,sans-serif;font-size:15px;line-height:1.5}
+header{background:var(--graphite)!important;border-bottom:1px solid var(--line)!important}
+.logo{font-family:'Teko',sans-serif;font-size:32px!important;line-height:1;color:var(--tag)!important;letter-spacing:.5px}
+.card{background:var(--steel)!important;border:1px solid var(--line)!important;border-radius:var(--r)!important;box-shadow:none!important}
+h2{text-transform:none!important;letter-spacing:0!important;font-size:15px!important;font-weight:600!important;color:var(--muted)!important}
+.small{color:var(--muted)!important}
+button{font-family:inherit;background:var(--steel-2)!important;color:var(--chalk)!important;border:1px solid var(--line)!important;
+  border-radius:8px!important;min-height:40px;transition:background .15s,border-color .15s}
+button:hover{border-color:var(--tag)!important}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--tag);outline-offset:2px}
+button.primary{background:var(--tag)!important;color:#1E2328!important;border-color:var(--tag)!important;font-weight:600}
+button.ok{background:var(--ok)!important;color:#fff!important;border-color:var(--ok)!important}
+button:disabled{opacity:.55;cursor:wait}
+input,select{background:var(--graphite)!important;color:var(--chalk)!important;border:1px solid var(--line)!important;
+  border-radius:8px!important;min-height:38px;padding:6px 10px;font-family:inherit}
+/* chips look like QC tags: punched hole + tag shape */
+.chip{position:relative;border-radius:4px 10px 10px 4px!important;padding:3px 10px 3px 20px!important;font-weight:500}
+.chip::before{content:"";position:absolute;left:7px;top:50%;width:6px;height:6px;margin-top:-3px;border-radius:50%;background:var(--graphite)}
+.chip.ok{background:rgba(63,163,107,.18)!important;color:#86D9AA!important}
+.chip.warn{background:rgba(242,183,5,.16)!important;color:var(--tag)!important}
+.chip.bad{background:rgba(214,69,69,.2)!important;color:#F29A9A!important}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+/* Route card: the 7-step loop as a shop-floor job card, stamped as each step happens */
+#route{display:flex;align-items:center;gap:14px;padding:10px 24px;border-bottom:1px solid var(--line);background:var(--graphite);overflow-x:auto}
+#route .rc-title{font-family:'Teko',sans-serif;font-size:20px;color:var(--muted);white-space:nowrap}
+#route ol{display:flex;gap:8px;list-style:none;margin:0;padding:0}
+#route li{position:relative;font-family:'Teko',sans-serif;font-size:19px;letter-spacing:.3px;padding:3px 14px;border:1px dashed var(--line);border-radius:6px;color:var(--muted);white-space:nowrap}
+#route li.done{border:1px solid var(--ok);color:var(--chalk)}
+#route li.now{border:1px solid var(--tag);color:var(--tag)}
+#route li.done::after{content:"✓";position:absolute;right:-9px;top:-10px;width:22px;height:22px;border-radius:50%;border:2px solid var(--ok);
+  color:var(--ok);background:var(--graphite);font:600 13px/18px 'Hind',sans-serif;text-align:center;transform:rotate(-12deg);animation:stamp .35s ease-out}
+@keyframes stamp{from{transform:scale(1.8) rotate(-30deg);opacity:0}to{transform:scale(1) rotate(-12deg);opacity:1}}
+/* Grouped navigation */
+.navgrp{margin-bottom:14px}
+.navgrp h3{font-size:13px;font-weight:600;color:var(--muted);margin:2px 2px 6px}
+.navgrp button{text-align:left!important;margin-bottom:6px!important;padding-left:12px}
+/* Home: live alert + the golden sample wall */
+.home-alert{display:flex;align-items:center;gap:10px;padding:10px 14px;margin-bottom:18px;border:1px solid rgba(214,69,69,.5);
+  background:rgba(214,69,69,.12);border-radius:8px;color:#F6B3B3}
+.home-alert button{margin-left:auto;min-height:32px}
+.pulse{flex:none;width:10px;height:10px;border-radius:50%;background:var(--rej);box-shadow:0 0 0 0 rgba(214,69,69,.6);animation:pulse 1.8s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 10px rgba(214,69,69,0)}100%{box-shadow:0 0 0 0 rgba(214,69,69,0)}}
+.home-h{font-family:'Teko',sans-serif!important;font-size:36px!important;font-weight:500!important;color:var(--chalk)!important;margin:2px 0 0;line-height:1.1}
+.home-sub{color:var(--muted);max-width:62ch;margin:2px 0 18px}
+.home-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+.wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:22px;padding:24px 18px 18px;border-radius:10px;background:#252A31;border:1px solid var(--line)}
+.pin{position:relative;display:flex;flex-direction:column;padding:8px 8px 10px!important;background:#EDEFF1!important;color:#1E2328!important;
+  border:none!important;border-radius:3px!important;transform:rotate(var(--tilt));transition:transform .2s;text-align:left!important;cursor:pointer;min-height:0}
+.pin:hover,.pin:focus-visible{transform:rotate(0) translateY(-3px)}
+.pin::before{content:"";position:absolute;top:-9px;left:50%;width:56px;height:16px;margin-left:-28px;background:rgba(242,183,5,.6);transform:rotate(-3deg)}
+.pin img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:2px;display:block}
+.pin img.gold{position:absolute;right:14px;top:14px;width:34%;border:2px solid var(--ok);border-radius:3px}
+.pin .ok-tag{position:absolute;right:14px;top:6px;background:var(--ok);color:#fff;font-size:10px;font-weight:600;padding:0 5px;border-radius:2px}
+.pin-name{font-weight:600;font-size:13px;margin-top:7px;line-height:1.25}
+.pin-m{font-size:12px;color:#5B6470}
+.pin .chk-tag{position:absolute;left:14px;top:14px;background:var(--tag);color:#1E2328;font-size:10px;font-weight:600;padding:0 6px;border-radius:2px}
+#tabs{display:none}
+@media (max-width:760px){
+  header{padding:10px 14px!important;gap:6px!important}
+  header .tag{display:none!important}
+  header .chip,header .pill{font-size:11px!important;padding:2px 8px 2px 18px!important}
+  #route{padding:8px 12px}#route li{font-size:16px;padding:2px 10px}#route .rc-title{display:none}
+  main{display:flex!important;flex-direction:column;gap:12px;padding:10px!important;padding-bottom:84px!important}
+  main>section:nth-of-type(2){order:1}main>section:nth-of-type(1){order:2}main>section:nth-of-type(3){order:3}
+  .wall{grid-template-columns:repeat(2,1fr);gap:16px;padding:20px 12px 12px}
+  #tabs{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:150;background:var(--graphite);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
+  #tabs button{flex:1;min-height:52px;border:none!important;background:none!important;font-size:12px;display:flex;flex-direction:column;align-items:center;gap:2px}
+  #tabs button span{font-size:20px}
+  .log-wrap.collapsed .log{display:none}
+  .log-wrap h2{cursor:pointer}
+}
+.home-alert[hidden]{display:none!important}
+@media (max-width:760px){
+  header{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none}
+  header>*:not(.logo):not(select){font-size:11px!important;white-space:nowrap;flex:none}
+  header select{flex:none;margin-left:auto}
+  .logo{font-size:26px!important;flex:none}
+}
