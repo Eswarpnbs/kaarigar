@@ -11,3 +11,5 @@ data/sim/
 data/cache/
 adk_app/**/.adk/
 adk_app/**/.adk/
+data/bench/
+app/static/index.backup.html
