@@ -1,0 +1,1008 @@
+[
+  {
+    "pair": "aaru_cover_defect_1640281",
+    "truth": true,
+    "truth_type": "aaru_cover",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "rework",
+    "confidence": 95,
+    "pred_types": [
+      "scratch"
+    ],
+    "latency_s": 16.16,
+    "loc": null,
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "scratch",
+          "severity": "major",
+          "description": "Multiple deep and irregular scratches and surface marring on the central raised rectangular section, deviating significantly from the golden sample's finish.",
+          "box_2d": [
+            290,
+            275,
+            627,
+            800
+          ]
+        }
+      ],
+      "confidence": 95,
+      "recommendation": "rework",
+      "notes": "1 defect(s) from first pass, confirmed by verifier"
+    }
+  },
+  {
+    "pair": "aaru_cover_defect_coverbad1",
+    "truth": true,
+    "truth_type": "aaru_cover",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "rework",
+    "confidence": 95,
+    "pred_types": [
+      "scratch"
+    ],
+    "latency_s": 19.78,
+    "loc": null,
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "scratch",
+          "severity": "major",
+          "description": "Numerous prominent, irregular scratches and scuff marks covering the entire raised central rectangular surface, deviating significantly from the uniform machining marks seen on the golden sample.",
+          "box_2d": [
+            290,
+            275,
+            625,
+            800
+          ]
+        }
+      ],
+      "confidence": 95,
+      "recommendation": "rework",
+      "notes": "1 defect(s) from first pass, confirmed by verifier"
+    }
+  },
+  {
+    "pair": "aaru_cover_good_at164028",
+    "truth": false,
+    "truth_type": "good",
+    "pred": false,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "accept",
+    "confidence": 95,
+    "pred_types": [],
+    "latency_s": 6.05,
+    "loc": null,
+    "raw": {
+      "defect_found": false,
+      "defects": [],
+      "confidence": 95,
+      "recommendation": "accept",
+      "notes": "no defect in first pass or detail scan"
+    }
+  },
+  {
+    "pair": "aaru_cover_good_overclean2",
+    "truth": false,
+    "truth_type": "good",
+    "pred": false,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "accept",
+    "confidence": 95,
+    "pred_types": [],
+    "latency_s": 5.33,
+    "loc": null,
+    "raw": {
+      "defect_found": false,
+      "defects": [],
+      "confidence": 95,
+      "recommendation": "accept",
+      "notes": "no defect in first pass or detail scan"
+    }
+  },
+  {
+    "pair": "bar_defect_2231361",
+    "truth": true,
+    "truth_type": "bar",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "rework",
+    "confidence": 95,
+    "pred_types": [
+      "rust"
+    ],
+    "latency_s": 15.01,
+    "loc": null,
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "rust",
+          "severity": "major",
+          "description": "Extensive reddish-brown rust covering the entire top circular face of the metal cylinder.",
+          "box_2d": [
+            299,
+            409,
+            506,
+            828
+          ]
+        }
+      ],
+      "confidence": 95,
+      "recommendation": "rework",
+      "notes": "1 defect(s) from first pass, confirmed by verifier"
+    }
+  },
+  {
+    "pair": "bar_defect_at223136",
+    "truth": true,
+    "truth_type": "bar",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "reject",
+    "confidence": 95,
+    "pred_types": [
+      "rust"
+    ],
+    "latency_s": 18.83,
+    "loc": null,
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "rust",
+          "severity": "critical",
+          "description": "Heavy rust and discoloration covering a large portion of the top surface, significantly different from the clean machined surface of the golden samples.",
+          "box_2d": [
+            100,
+            250,
+            500,
+            750
+          ]
+        }
+      ],
+      "confidence": 95,
+      "recommendation": "reject",
+      "notes": "1 defect(s) from first pass, confirmed by verifier"
+    }
+  },
+  {
+    "pair": "bar_defect_barrust1",
+    "truth": true,
+    "truth_type": "bar",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "rework",
+    "confidence": 95,
+    "pred_types": [
+      "rust"
+    ],
+    "latency_s": 12.88,
+    "loc": null,
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "rust",
+          "severity": "major",
+          "description": "Extensive rust and corrosion covering a large portion of the top circular face.",
+          "box_2d": [
+            100,
+            300,
+            400,
+            700
+          ]
+        }
+      ],
+      "confidence": 95,
+      "recommendation": "rework",
+      "notes": "1 defect(s) from first pass, confirmed by verifier"
+    }
+  },
+  {
+    "pair": "bar_good_2231341",
+    "truth": false,
+    "truth_type": "good",
+    "pred": false,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "accept",
+    "confidence": 95,
+    "pred_types": [],
+    "latency_s": 14.55,
+    "loc": null,
+    "raw": {
+      "defect_found": false,
+      "defects": [],
+      "confidence": 95,
+      "recommendation": "accept",
+      "notes": "detail scan flags dismissed confidently by verifier"
+    }
+  },
+  {
+    "pair": "bar_good_2231352",
+    "truth": false,
+    "truth_type": "good",
+    "pred": false,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "accept",
+    "confidence": 95,
+    "pred_types": [],
+    "latency_s": 7.69,
+    "loc": null,
+    "raw": {
+      "defect_found": false,
+      "defects": [],
+      "confidence": 95,
+      "recommendation": "accept",
+      "notes": "no defect in first pass or detail scan"
+    }
+  },
+  {
+    "pair": "block_defect_2231282",
+    "truth": true,
+    "truth_type": "block",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "rework",
+    "confidence": 92,
+    "pred_types": [
+      "discoloration"
+    ],
+    "latency_s": 13.52,
+    "loc": null,
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "discoloration",
+          "severity": "major",
+          "description": "Dark, splotchy discoloration and stains covering the entire top surface of the block, significantly more pronounced and uneven than the golden sample.",
+          "box_2d": [
+            138,
+            69,
+            488,
+            998
+          ]
+        }
+      ],
+      "confidence": 92,
+      "recommendation": "rework",
+      "notes": "1 defect(s) from first pass, confirmed by verifier"
+    }
+  },
+  {
+    "pair": "block_defect_2231291",
+    "truth": true,
+    "truth_type": "block",
+    "pred": false,
+    "correct": false,
+    "safe": false,
+    "false_alarm": false,
+    "recommendation": "accept",
+    "confidence": 95,
+    "pred_types": [],
+    "latency_s": 10.45,
+    "loc": null,
+    "raw": {
+      "defect_found": false,
+      "defects": [],
+      "confidence": 95,
+      "recommendation": "accept",
+      "notes": "first pass flags dismissed confidently by verifier"
+    }
+  },
+  {
+    "pair": "block_defect_2231292",
+    "truth": true,
+    "truth_type": "block",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "rework",
+    "confidence": 82,
+    "pred_types": [
+      "discoloration"
+    ],
+    "latency_s": 27.56,
+    "loc": null,
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "discoloration",
+          "severity": "major",
+          "description": "The top surface of the metal block exhibits significant dark discoloration and staining, which is a clear deviation from the clean appearance of the golden sample. This suggests heavy grime or oxidation.",
+          "box_2d": [
+            0,
+            0,
+            550,
+            1000
+          ]
+        }
+      ],
+      "confidence": 82,
+      "recommendation": "rework",
+      "notes": "1 defect(s) from first pass, confirmed by verifier"
+    }
+  },
+  {
+    "pair": "block_defect_2231293",
+    "truth": true,
+    "truth_type": "block",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "reject",
+    "confidence": 95,
+    "pred_types": [
+      "discoloration",
+      "deformation"
+    ],
+    "latency_s": 24.79,
+    "loc": null,
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "discoloration",
+          "severity": "critical",
+          "description": "The entire visible surface of the block is heavily discolored, appearing dark and stained, possibly due to rust or heavy oxidation, significantly different from the clean, bright finish of the golden sample. The surface also appears rougher than the golden sample.",
+          "box_2d": [
+            199,
+            29,
+            717,
+            976
+          ]
+        },
+        {
+          "type": "deformation",
+          "severity": "major",
+          "description": "The block exhibits significant surface discoloration and dirt, and its visible edges are rough, uneven, and appear deformed or heavily corroded, lacking the sharp and straight lines and clean finish seen in the golden sample.",
+          "box_2d": [
+            200,
+            0,
+            712,
+            999
+          ]
+        }
+      ],
+      "confidence": 95,
+      "recommendation": "reject",
+      "notes": "2 defect(s) from first pass, confirmed by verifier"
+    }
+  },
+  {
+    "pair": "block_defect_2231312",
+    "truth": true,
+    "truth_type": "block",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "rework",
+    "confidence": 96,
+    "pred_types": [
+      "discoloration",
+      "deformation"
+    ],
+    "latency_s": 30.19,
+    "loc": null,
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "discoloration",
+          "severity": "major",
+          "description": "The entire visible surface of the part is heavily discolored, dark, and dirty, lacking the clean metallic finish of the golden sample. This is a significant deviation from the expected appearance.",
+          "box_2d": [
+            98,
+            28,
+            705,
+            972
+          ]
+        },
+        {
+          "type": "deformation",
+          "severity": "major",
+          "description": "Presence of rough weld beads along the bottom edge of the front face, which are not present on the golden sample and indicate a significant alteration to the part's intended form and finish.",
+          "box_2d": [
+            600,
+            0,
+            700,
+            999
+          ]
+        }
+      ],
+      "confidence": 96,
+      "recommendation": "rework",
+      "notes": "2 defect(s) from first pass, confirmed by verifier"
+    }
+  },
+  {
+    "pair": "block_defect_at223128",
+    "truth": true,
+    "truth_type": "block",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "rework",
+    "confidence": 88,
+    "pred_types": [
+      "discoloration",
+      "discoloration"
+    ],
+    "latency_s": 26.14,
+    "loc": null,
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "discoloration",
+          "severity": "major",
+          "description": "The top surface of the block exhibits widespread and significant dark discoloration and staining, making it appear dirty and inconsistent with the clean finish of the golden sample. This is beyond normal dust and appears to be ingrained grime or a surface treatment issue.",
+          "box_2d": [
+            100,
+            0,
+            500,
+            1000
+          ]
+        },
+        {
+          "type": "discoloration",
+          "severity": "major",
+          "description": "The front face of the part exhibits significant dullness and a darker, less metallic appearance compared to the bright, clean finish of the golden sample. This widespread discoloration affects the entire visible surface.",
+          "box_2d": [
+            390,
+            80,
+            700,
+            998
+          ]
+        }
+      ],
+      "confidence": 88,
+      "recommendation": "rework",
+      "notes": "2 defect(s) from first pass, confirmed by verifier"
+    }
+  },
+  {
+    "pair": "block_defect_at223129",
+    "truth": true,
+    "truth_type": "block",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "reject",
+    "confidence": 98,
+    "pred_types": [
+      "discoloration",
+      "deformation"
+    ],
+    "latency_s": 21.39,
+    "loc": null,
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "discoloration",
+          "severity": "major",
+          "description": "The entire surface of the part is severely discolored, appearing dark and oxidized, which is a significant deviation from the bright, clean metallic finish of the golden sample. There are also rough, uneven areas along the edges.",
+          "box_2d": [
+            250,
+            29,
+            719,
+            990
+          ]
+        },
+        {
+          "type": "deformation",
+          "severity": "critical",
+          "description": "The part exhibits severe surface and edge irregularities, including rough, uneven edges with material buildup (likely slag or poor cutting) and a non-uniform, unfinished top surface. This significantly deviates from the smooth, machined finish and sharp edges of the golden sample.",
+          "box_2d": [
+            240,
+            30,
+            722,
+            990
+          ]
+        }
+      ],
+      "confidence": 98,
+      "recommendation": "reject",
+      "notes": "2 defect(s) from first pass, confirmed by verifier"
+    }
+  },
+  {
+    "pair": "block_defect_at223130",
+    "truth": true,
+    "truth_type": "block",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "rework",
+    "confidence": 95,
+    "pred_types": [
+      "discoloration",
+      "deformation",
+      "deformation"
+    ],
+    "latency_s": 54.03,
+    "loc": null,
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "discoloration",
+          "severity": "major",
+          "description": "The entire visible surface of the metal block is heavily discolored, appearing dark, dull, and stained, lacking the clean, bright, and uniform finish of the golden sample. The bottom edge also shows significant surface irregularities and material buildup, which is not present in the golden sample.",
+          "box_2d": [
+            2,
+            0,
+            630,
+            999
+          ]
+        },
+        {
+          "type": "deformation",
+          "severity": "major",
+          "description": "The top edge of the front face and the top surface exhibit significant roughness and irregular material, indicating poor finishing or deformation, which deviates substantially from the smooth, well-defined surfaces of the golden sample.",
+          "box_2d": [
+            498,
+            39,
+            670,
+            982
+          ]
+        },
+        {
+          "type": "deformation",
+          "severity": "major",
+          "description": "The bottom-left edge of the front face is severely rough and irregular, with significant excess material and an uneven profile, indicating poor cutting, welding, or finishing, which deviates significantly from the smooth edge of the golden sample.",
+          "box_2d": [
+            450,
+            0,
+            650,
+            600
+          ]
+        }
+      ],
+      "confidence": 95,
+      "recommendation": "rework",
+      "notes": "3 defect(s) from first pass, confirmed by verifier"
+    }
+  },
+  {
+    "pair": "block_good_2231281",
+    "truth": false,
+    "truth_type": "good",
+    "pred": false,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "accept",
+    "confidence": 100,
+    "pred_types": [],
+    "latency_s": 8.57,
+    "loc": null,
+    "raw": {
+      "defect_found": false,
+      "defects": [],
+      "confidence": 100,
+      "recommendation": "accept",
+      "notes": "no defect in first pass or detail scan"
+    }
+  },
+  {
+    "pair": "sprocket_angle_good_2231161",
+    "truth": false,
+    "truth_type": "good",
+    "pred": false,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "accept",
+    "confidence": 95,
+    "pred_types": [],
+    "latency_s": 30.18,
+    "loc": null,
+    "raw": {
+      "defect_found": false,
+      "defects": [],
+      "confidence": 95,
+      "recommendation": "accept",
+      "notes": "detail scan flags dismissed confidently by verifier"
+    }
+  },
+  {
+    "pair": "sprocket_angle_good_2231181",
+    "truth": false,
+    "truth_type": "good",
+    "pred": false,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "accept",
+    "confidence": 95,
+    "pred_types": [],
+    "latency_s": 5.15,
+    "loc": null,
+    "raw": {
+      "defect_found": false,
+      "defects": [],
+      "confidence": 95,
+      "recommendation": "accept",
+      "notes": "no defect in first pass or detail scan"
+    }
+  },
+  {
+    "pair": "sprocket_angle_good_at223117",
+    "truth": false,
+    "truth_type": "good",
+    "pred": false,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "accept",
+    "confidence": 95,
+    "pred_types": [],
+    "latency_s": 13.31,
+    "loc": null,
+    "raw": {
+      "defect_found": false,
+      "defects": [],
+      "confidence": 95,
+      "recommendation": "accept",
+      "notes": "detail scan flags dismissed confidently by verifier"
+    }
+  },
+  {
+    "pair": "sprocket_pair_good_2230451",
+    "truth": false,
+    "truth_type": "good",
+    "pred": false,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "accept",
+    "confidence": 95,
+    "pred_types": [],
+    "latency_s": 16.29,
+    "loc": null,
+    "raw": {
+      "defect_found": false,
+      "defects": [],
+      "confidence": 95,
+      "recommendation": "accept",
+      "notes": "detail scan flags dismissed confidently by verifier"
+    }
+  },
+  {
+    "pair": "sprocket_pair_good_at223046",
+    "truth": false,
+    "truth_type": "good",
+    "pred": false,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "accept",
+    "confidence": 95,
+    "pred_types": [],
+    "latency_s": 36.46,
+    "loc": null,
+    "raw": {
+      "defect_found": false,
+      "defects": [],
+      "confidence": 95,
+      "recommendation": "accept",
+      "notes": "detail scan flags dismissed confidently by verifier"
+    }
+  },
+  {
+    "pair": "sprocket_pair_good_at223057",
+    "truth": false,
+    "truth_type": "good",
+    "pred": true,
+    "correct": false,
+    "safe": true,
+    "false_alarm": true,
+    "recommendation": "rework",
+    "confidence": 95,
+    "pred_types": [
+      "scratch"
+    ],
+    "latency_s": 17.51,
+    "loc": null,
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "scratch",
+          "severity": "major",
+          "description": "A prominent diagonal scratch on the face of the top sprocket, extending from near the center hole towards the left edge.",
+          "box_2d": [
+            200,
+            290,
+            290,
+            490
+          ]
+        }
+      ],
+      "confidence": 95,
+      "recommendation": "rework",
+      "notes": "1 defect(s) from detail scan, confirmed by verifier"
+    }
+  },
+  {
+    "pair": "sprocket_top_good_2231151",
+    "truth": false,
+    "truth_type": "good",
+    "pred": true,
+    "correct": false,
+    "safe": true,
+    "false_alarm": true,
+    "recommendation": "rework",
+    "confidence": 95,
+    "pred_types": [
+      "scratch",
+      "discoloration",
+      "discoloration"
+    ],
+    "latency_s": 63.91,
+    "loc": null,
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "scratch",
+          "severity": "minor",
+          "description": "A distinct vertical scratch is present on the surface of the sprocket, not visible on the golden sample.",
+          "box_2d": [
+            200,
+            375,
+            510,
+            385
+          ]
+        },
+        {
+          "type": "discoloration",
+          "severity": "minor",
+          "description": "Visible fingerprint marks on the surface of the sprocket.",
+          "box_2d": [
+            100,
+            100,
+            900,
+            550
+          ]
+        },
+        {
+          "type": "discoloration",
+          "severity": "minor",
+          "description": "Reddish discoloration or residue present on the tips and valleys of the sprocket teeth along the bottom edge.",
+          "box_2d": [
+            700,
+            250,
+            780,
+            700
+          ]
+        }
+      ],
+      "confidence": 95,
+      "recommendation": "rework",
+      "notes": "3 defect(s) from detail scan, confirmed by verifier"
+    }
+  },
+  {
+    "pair": "sprocket_top_good_at223116",
+    "truth": false,
+    "truth_type": "good",
+    "pred": true,
+    "correct": false,
+    "safe": true,
+    "false_alarm": true,
+    "recommendation": "rework",
+    "confidence": 95,
+    "pred_types": [
+      "discoloration"
+    ],
+    "latency_s": 34.47,
+    "loc": null,
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "discoloration",
+          "severity": "minor",
+          "description": "Oily smudge or fingerprint on the top-left surface of the sprocket.",
+          "box_2d": [
+            297,
+            290,
+            400,
+            390
+          ]
+        }
+      ],
+      "confidence": 95,
+      "recommendation": "rework",
+      "notes": "1 defect(s) from detail scan, confirmed by verifier"
+    }
+  },
+  {
+    "pair": "squarebar_good_2231373",
+    "truth": false,
+    "truth_type": "good",
+    "pred": false,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "accept",
+    "confidence": 95,
+    "pred_types": [],
+    "latency_s": 11.49,
+    "loc": null,
+    "raw": {
+      "defect_found": false,
+      "defects": [],
+      "confidence": 95,
+      "recommendation": "accept",
+      "notes": "detail scan flags dismissed confidently by verifier"
+    }
+  },
+  {
+    "pair": "squarebar_good_at223137",
+    "truth": false,
+    "truth_type": "good",
+    "pred": false,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "accept",
+    "confidence": 95,
+    "pred_types": [],
+    "latency_s": 23.25,
+    "loc": null,
+    "raw": {
+      "defect_found": false,
+      "defects": [],
+      "confidence": 95,
+      "recommendation": "accept",
+      "notes": "detail scan flags dismissed confidently by verifier"
+    }
+  },
+  {
+    "pair": "strip_defect_2231322",
+    "truth": true,
+    "truth_type": "strip",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "reject",
+    "confidence": 96,
+    "pred_types": [
+      "rust"
+    ],
+    "latency_s": 14.2,
+    "loc": null,
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "rust",
+          "severity": "critical",
+          "description": "The entire visible surface of the metallic bar is covered in heavy reddish-brown rust, indicating significant corrosion.",
+          "box_2d": [
+            0,
+            300,
+            1000,
+            666
+          ]
+        }
+      ],
+      "confidence": 96,
+      "recommendation": "reject",
+      "notes": "1 defect(s) from first pass, confirmed by verifier"
+    }
+  },
+  {
+    "pair": "strip_defect_at223132",
+    "truth": true,
+    "truth_type": "strip",
+    "pred": true,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "reject",
+    "confidence": 99,
+    "pred_types": [
+      "rust"
+    ],
+    "latency_s": 10.18,
+    "loc": null,
+    "raw": {
+      "defect_found": true,
+      "defects": [
+        {
+          "type": "rust",
+          "severity": "critical",
+          "description": "The entire visible surface of the metal bar is covered in heavy, widespread rust, indicating severe corrosion and degradation of the material. This is a significant deviation from the golden sample.",
+          "box_2d": [
+            0,
+            365,
+            1000,
+            660
+          ]
+        }
+      ],
+      "confidence": 99,
+      "recommendation": "reject",
+      "notes": "1 defect(s) from first pass, confirmed by verifier"
+    }
+  },
+  {
+    "pair": "strip_good_2231313",
+    "truth": false,
+    "truth_type": "good",
+    "pred": false,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "accept",
+    "confidence": 95,
+    "pred_types": [],
+    "latency_s": 7.96,
+    "loc": null,
+    "raw": {
+      "defect_found": false,
+      "defects": [],
+      "confidence": 95,
+      "recommendation": "accept",
+      "notes": "no defect in first pass or detail scan"
+    }
+  },
+  {
+    "pair": "strip_good_at223131",
+    "truth": false,
+    "truth_type": "good",
+    "pred": false,
+    "correct": true,
+    "safe": true,
+    "false_alarm": false,
+    "recommendation": "accept",
+    "confidence": 100,
+    "pred_types": [],
+    "latency_s": 8.05,
+    "loc": null,
+    "raw": {
+      "defect_found": false,
+      "defects": [],
+      "confidence": 100,
+      "recommendation": "accept",
+      "notes": "no defect in first pass or detail scan"
+    }
+  }
+]

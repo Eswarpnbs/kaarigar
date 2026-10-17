@@ -71,7 +71,8 @@ _FAST = BuiltInPlanner(thinking_config=_gt.ThinkingConfig(thinking_budget=0))
 RULES = ("Use ONLY tool results; cite machine ids, work order ids and defect ids. Never invent numbers. "
          "You SHOULD recommend concrete next steps (what to inspect, whether to plan a stop, which work order to review), but you cannot approve, reject or change anything yourself: a signed-in supervisor does that in the app. "
          "Machine data is SIMULATED and past records are SYNTHETIC samples; say so when relevant. "
-         "Answer in the language the user asks for. Keep answers short, specific and practical.")
+         "Always answer in the language named in the [Answer in ...] tag, even if the question itself is in English. "
+         "If a request is repeated, answer it again in full; never ask for confirmation. Keep answers short, specific and practical.")
 
 web_inspector = Agent(planner=_FAST, name="inspector", model=_model(), description="Inspects demo parts against golden samples.",
                       instruction="You inspect demo parts with your tools and report defects with their location. " + RULES,
@@ -86,9 +87,34 @@ insights_agent = Agent(planner=_FAST, name="insights", model=_model(),
                                     "search_factory_memory, list_work_orders, get_eight_d_report. " + RULES),
                        tools=[factory_status, supplier_scorecard, work_orders_summary, search_factory_memory,
                               list_work_orders, get_eight_d_report])
+
+from google.adk.tools import google_search
+from google.adk.tools.agent_tool import AgentTool
+
+
+def new_operator_guide(machine_id: str) -> dict:
+    """Step-by-step guide for a new operator on one machine (M1..M5), built from this shop's SOPs and Factory Memory,
+    with citations checked in code."""
+    from agents.teach import teach
+    return teach(machine_id, "")
+
+
+trade_search = Agent(name="trade_search", model=_model(), description="Searches the web for general machining, quality and maintenance know-how.",
+                     instruction=("Answer general machining, quality-inspection and maintenance questions using Google Search. "
+                                  "Be brief and practical (at most 6 short steps). Never invent sources. "
+                                  "Never override the shop's SOPs; for safety-critical steps say: follow your SOP or ask your supervisor."),
+                     tools=[google_search])
+trainer_agent = Agent(name="trainer", model=_model(), planner=_FAST,
+                      description="Teaches operators: new-operator guides from this shop's SOPs, and general machining or quality know-how.",
+                      instruction=("You teach shop-floor operators. For anything about THIS shop (a machine, its setup, its SOPs) use "
+                                   "new_operator_guide. For general trade questions (measuring runout, causes of chatter marks, GD&T symbols) "
+                                   "use trade_search and start with: 'General knowledge from Google Search, not your shop's SOP.' Do not add a sources line. "
+                                   "Only machining, quality and maintenance topics; politely decline business, tax, pricing or unrelated questions. " + RULES),
+                      tools=[new_operator_guide, AgentTool(agent=trade_search)])
+
 web_root = Agent(planner=_FAST, name="kaarigar", model=_model(), description="Kaarigar orchestrator for the web app.",
                  instruction=("You are Kaarigar, an AI quality co-pilot for a small machine shop. Route every question to "
                               "the right specialist immediately: insights for machines, forecasts, suppliers, work orders "
-                              "or history; diagnosis for why a part failed; inspector to inspect a demo part. "
+                              "or history; diagnosis for why a part failed; inspector to inspect a demo part; trainer for how-to questions, new-operator guides and general machining or quality know-how. "
                               "Do not answer factory questions yourself. " + RULES),
-                 sub_agents=[web_inspector, web_diagnosis, insights_agent])
+                 sub_agents=[web_inspector, web_diagnosis, insights_agent, trainer_agent])

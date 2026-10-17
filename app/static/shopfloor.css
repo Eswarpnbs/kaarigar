@@ -225,3 +225,42 @@ html header select option{background:#FFFFFF;color:#1B2420}
 #flow th{color:var(--muted)!important}
 #route li{color:#4F4422!important}
 #route li.done{color:#0F5A2D!important}
+/* Worker mode (phones) */
+.wk-h{font-family:var(--sig);font-weight:600;font-size:40px;line-height:1;color:var(--green);margin:6px 0 16px}
+.wk-btn{display:flex!important;align-items:center;gap:16px;width:100%;min-height:96px!important;margin-bottom:14px;border-radius:14px!important;
+  font-family:var(--sig)!important;font-weight:600;font-size:28px!important;padding:0 22px!important;text-align:left!important}
+.wk-btn i{font-size:38px}
+.wk-btn.b2{background:var(--green)!important;color:#fff!important;border-color:var(--green)!important}
+.wk-links{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+/* Full-screen verdict */
+.verdict{position:fixed;inset:0;z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px;color:#fff;text-align:center}
+.verdict.ok{background:#17703A}.verdict.bad{background:#C0211A}.verdict.amber{background:#B86E00}
+.v-ico{width:120px;height:120px;border:7px solid #fff;display:flex;align-items:center;justify-content:center;font-size:64px;font-weight:700}
+.verdict.ok .v-ico{border-radius:50%}.verdict.amber .v-ico{border-radius:8px}
+.verdict.bad .v-ico{border:none;width:0;height:0;border-left:70px solid transparent;border-right:70px solid transparent;border-bottom:120px solid #fff;font-size:0;position:relative}
+.verdict.bad .v-ico::after{content:"✗";position:absolute;left:-22px;top:42px;font-size:56px;color:#C0211A;font-weight:700}
+.v-word{font-family:var(--sig);font-weight:600;font-size:64px;line-height:1}
+.v-say{font-size:22px;max-width:22ch}
+.verdict button{min-height:60px!important;font-size:20px!important;border-radius:12px!important;padding:0 28px!important}
+.stamp.amber{color:#B86E00!important;border-color:#B86E00!important}
+/* Floor plan on phones: one column, machines two per row */
+@media (max-width:760px){
+  .floor.grid5s{grid-template-columns:minmax(0,1fr)!important;grid-template-areas:"bay" "bench" "cabin" "board" "store"!important}
+  .floor.grid5s .aisle{display:none!important}
+  .floor.grid5s .bay{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .floor-top{flex-direction:column;align-items:flex-start}
+}
+body.worker #route,body.worker main>section:first-of-type{display:none!important}
+
+html:not([data-ui="en"]) .floor-h,html:not([data-ui="en"]) .hero-h,html:not([data-ui="en"]) .wk-h{font-size:32px!important;line-height:1.45!important;font-weight:600}
+html:not([data-ui="en"]) .zone-l{font-size:14px!important;line-height:1.5!important}
+html:not([data-ui="en"]) .cta-big{font-size:20px!important;line-height:1.4!important}
+/* Units drawn by CSS: nothing for the translator to touch */
+.mach .rd small{font-size:0!important}
+.mach .rd small::after{content:"mm/s";font-size:12px;opacity:.8;margin-left:3px;font-family:var(--sig)}
+/* Indian scripts: room for marks above and below the line */
+html:not([data-ui="en"]) .zone-l{padding:3px 10px!important;line-height:1.6!important;transform:translateY(-62%)!important}
+html:not([data-ui="en"]) .zc{line-height:1.6!important;padding:1px 7px!important;vertical-align:3px}
+html:not([data-ui="en"]) .lvl-tag,html:not([data-ui="en"]) .navgrp h3{line-height:1.5!important}
+.tool .sub{display:block;font-size:12px;color:var(--muted);line-height:1.3;margin-top:1px}
+#teachBtn{display:none!important}

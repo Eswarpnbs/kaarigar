@@ -686,9 +686,9 @@ const mdLite=s=>esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/^\s*[\*\-]
 function showAsk(){
  t0=performance.now();$('#log').innerHTML='';
  $('#flow').innerHTML=`<h2>💬 Ask Kaarigar</h2>
- <p class="small">Ask about your factory. The ADK agent team routes your question to the right specialist, which answers from real tools (BigQuery forecast, machine health, Factory Memory, suppliers, work orders). Read-only: it cannot approve anything.</p>
+ <p class="small">Ask about your factory, how to do a job, or a guide for a new operator. The ADK agent team routes your question to the right specialist: factory insights (BigQuery forecast, machine health, Factory Memory, suppliers, work orders), diagnosis, or the trainer (your shop's SOPs, plus general know-how from Google Search). Read-only: it cannot approve anything.</p>
  <p><input id="askQ" style="width:70%;padding:8px;border-radius:8px;border:1px solid #262b36;background:#0b0d11;color:#e8eaed" placeholder="e.g. Which machine worries you most, and why?"> <button class="primary" id="askGo">Ask</button></p>
- <p>${['Which machine worries you most, and why?','Which supplier causes most of our problems?','What is waiting for my approval?','Have we seen scratches on flange nuts before?'].map(q=>`<button class="askEx" style="margin:2px">${esc(q)}</button>`).join('')}</p>
+ <p>${['Which machine worries you most, and why?','Which supplier causes most of our problems?','What is waiting for my approval?','Have we seen scratches on flange nuts before?','How do I check runout with a dial indicator?','Make a new-operator guide for M1.'].map(q=>`<button class="askEx" style="margin:2px">${esc(q)}</button>`).join('')}</p>
  <div id="askOut" data-noai></div>`;
  $('#askGo').onclick=()=>runAsk($('#askQ').value);
  $('#askQ').onkeydown=e=>{if(e.key==='Enter')runAsk($('#askQ').value)};

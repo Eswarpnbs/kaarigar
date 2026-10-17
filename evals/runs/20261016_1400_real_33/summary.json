@@ -1,0 +1,16 @@
+{
+  "run": "20261016_1400_real_33",
+  "model": "gemini-2.5-flash",
+  "pairs": 32,
+  "errors": 0,
+  "detection_accuracy_pct": 87.5,
+  "defect_recall_pct": 93.3,
+  "safe_outcome_pct": 93.3,
+  "false_alarm_pct": 17.6,
+  "good_escalated_pct": 0.0,
+  "loc_hit_pct": null,
+  "avg_defect_coverage": null,
+  "avg_box_precision": null,
+  "whole_part_boxes": 0,
+  "avg_latency_s": 19.542
+}

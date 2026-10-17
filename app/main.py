@@ -325,6 +325,32 @@ def _speakable_en(t: str) -> str:
     return _r.sub(r"\s{2,}", " ", t).strip()
 
 
+
+_CT_TERMS = ["golden sample", "work order", "Factory Memory", "BigQuery ML", "ISO zone", "root cause", "8D", "SOP", "SCAR", "CNC", "Kaarigar", "mm/s"]
+
+
+def _ct_translate(texts, lang):
+    """Screen text via Cloud Translation API (fast, consistent); terms and codes are marked translate=no."""
+    import html as _h, re as _r, google.auth
+    from google.auth.transport.requests import AuthorizedSession
+    creds, proj = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
+    proj = os.environ.get("GOOGLE_CLOUD_PROJECT", proj)
+    pat = _r.compile(r"\b(?:SOP-\d+|WO-[\w-]+|D\d{3}|FN-\d+|EN\d+|M\d)\b|"
+                     + "|".join(_r.escape(t) for t in sorted(_CT_TERMS, key=len, reverse=True)), _r.I)
+    prot = lambda t: pat.sub(lambda m: f'<span translate="no">{m.group(0)}</span>', _h.escape(t))
+    sess, out, batch, size = AuthorizedSession(creds), [], [], 0
+    def flush():
+        if not batch: return
+        r = sess.post(f"https://translation.googleapis.com/v3/projects/{proj}/locations/global:translateText",
+                      json={"contents": batch, "sourceLanguageCode": "en", "targetLanguageCode": lang.split("-")[0], "mimeType": "text/html"}, timeout=15)
+        r.raise_for_status(); out.extend(x["translatedText"] for x in r.json()["translations"])
+    for t in texts:
+        pt = prot(t)
+        if size + len(pt) > 20000: flush(); batch.clear(); size = 0
+        batch.append(pt); size += len(pt)
+    flush()
+    return [_h.unescape(_r.sub(r"</?span[^>]*>", "", o)) for o in out]
+
 @app.post("/api/localize")
 def localize(req: LocalizeRequest):
     lang = req.lang if req.lang in LANG_NAMES_L else "en-IN"
@@ -335,15 +361,25 @@ def localize(req: LocalizeRequest):
     key = _hl.sha1(json.dumps([lang, items, spoken], ensure_ascii=False).encode()).hexdigest()
     if key in _LOC_CACHE:
         return _LOC_CACHE[key]
+    ct = None
+    if items:
+        try:
+            ct = _ct_translate(items, lang)
+        except Exception as e:
+            print('Cloud Translation unavailable, using Gemini:', type(e).__name__)
+    if ct is not None and not spoken:
+        res = {'lang': lang, 'items': ct, 'spoken': '', 'translated': [True] * len(items), 'validated': True, 'engine': 'cloud-translation'}
+        _LOC_CACHE[key] = res
+        return res
     try:
-        payload = {"items": [{"i": i, "t": t} for i, t in enumerate(items)], "spoken": spoken}
+        payload = {"items": [] if ct is not None else [{"i": i, "t": t} for i, t in enumerate(items)], "spoken": spoken}
         prompt = LOCALIZE_PROMPT.format(name=LANG_NAMES_L[lang], script=SCRIPTS.get(lang, ("native", ""))[0],
                                         payload=json.dumps(payload, ensure_ascii=False))
         out = _generate(os.environ.get("KAARIGAR_LOCALIZE_MODEL", "gemini-2.5-flash-lite"), [prompt], Localized)
         if _native_share([it.t for it in out.items] + ([out.spoken] if out.spoken else []), lang) < 0.6:
             out = _generate(GEMINI_MODEL, [prompt], Localized)          # wrong script: retry once with Flash
         got = {it.i: it.t for it in out.items if 0 <= it.i < len(items) and it.t.strip()}
-        merged = [got.get(i, t) for i, t in enumerate(items)]          # put back by index; missing -> original
+        merged = ct if ct is not None else [got.get(i, t) for i, t in enumerate(items)]          # put back by index; missing -> original
         res = {"lang": lang, "items": merged, "spoken": out.spoken or spoken,
                "translated": [i in got for i in range(len(items))], "validated": len(got) == len(items)}
     except Exception:

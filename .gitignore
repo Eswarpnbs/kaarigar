@@ -19,3 +19,5 @@ demo_parts/upload_*/
 evals/runs/*_full_mvtec_275/images/
 evals/runs/*_casting_100/images/
 evals/runs/*_locator_58/images/
+data/bench_real/
+evals/runs/*_real_33/images/

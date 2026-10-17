@@ -6,3 +6,4 @@ run,model,pairs,errors,detection_accuracy_pct,defect_recall_pct,safe_outcome_pct
 20261015_2232_casting_100,gemini-2.5-flash,98,2,79.6,96.0,96.0,37.5,2.1,,,,0,18.555
 20261015_2120_full_mvtec_275,gemini-2.5-flash,270,5,78.9,86.6,92.3,47.5,0.0,73.6,0.485,0.152,3,24.443
 20261016_0222_locator_58,gemini-2.5-flash,56,2,76.8,93.1,96.6,40.7,0.0,74.1,0.533,0.123,0,32.559
+20261016_1400_real_33,gemini-2.5-flash,32,0,87.5,93.3,93.3,17.6,0.0,,,,0,19.542

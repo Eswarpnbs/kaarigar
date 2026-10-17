@@ -65,12 +65,14 @@ Press **▶ Try the demo** (machine story) or **▶ Real factory part (Peenya)**
 - **Vector search.** One shop's Factory Memory is hundreds of records, so Gemini embeddings live in Firestore with hybrid keyword + meaning search. At cluster scale (many shops sharing supplier signals), we would move to Firestore vector search or AlloyDB AI with ScaNN.
 - **Agent sessions.** *Ask Kaarigar* stores conversation memory in **Agent Platform's managed session service** (Agent Engine), so follow-up questions keep their context across Cloud Run instances. If the session service is unavailable, it falls back to in-memory sessions automatically; the agents may recommend actions but never execute them.
 - **Localization on real photos.** An extra single-image pass places defect boxes on real (non-square) phone photos, where box placement drifted in multi-image prompts. Benchmarked on 58 MVTec pairs: applying it everywhere lowered box hits (85% to 74%), so it runs only on real photos.
+- **Languages.** Screen text is translated with the **Cloud Translation API** (fast and consistent; codes and shop terms such as SOP-02, M1, golden sample are protected). Spoken answers are rewritten by Gemini into natural, colloquial Kannada, Hindi or Telugu. AI answers are generated directly in the chosen language.
+- **One assistant, four specialists.** *Ask Kaarigar* routes each question (ADK) to Insights, Diagnosis, Inspector or the **Trainer**, which writes new-operator guides from the shop's SOPs and answers general machining questions with **Google Search grounding** (clearly labelled as general knowledge, never overriding the shop's SOPs).
 - **Reliability.** Warm Cloud Run instance with session affinity; uptime check every 5 minutes with email alerts; budget alerts; smoke tests gate every deploy; evaluation runs use a per-call watchdog.
 
 ## Evaluation
 | Benchmark | Data | Result |
 |---|---|---|
-| Real factory photos | 9 cases from two Bengaluru shops (written permission) | Defects caught **4/4**; good parts accepted 3/5 |
+| Real factory photos | 32 cases from two Bengaluru shops (written permission; labels by the team) | Defects caught **14/15 (93%)**; false alarms **3/17 (18%)** |
 | Indian foundry castings | Kaggle, Pilot Technocast impellers, 98 pairs, one golden photo, zero training | Defects caught **96%** (95% CI 87–99%); false alarms 38% (natural casting texture) |
 | MVTec AD | metal nut + screw, all test images (270 evaluated) | Defects caught **86.6%** (95% CI 81–91%); safe outcome 92.3%; defect box on the real defect 74%; false alarms 48% (random part rotation in the benchmark) |
 | Predict backtest | 25 **simulated** breakdowns, 5 seeds, model retrained hourly on past data only | Bearing wear warned **10/10**, median **9.2 h** ahead; misalignment 5/10; **0/19** false alarms on healthy machines. Tool wear is not visible in vibration and is caught at inspection instead |

@@ -87,7 +87,7 @@
   const _home = window.showHome;
   window.showHome = function () {
     _home();
-    const fix = () => { const pins = document.querySelectorAll('.pin'); if (!pins.length) return setTimeout(fix, 200); const n = {};
+    const fix = () => { const pins = document.querySelectorAll('#wall .pin'); if (!pins.length) return; const n = {};
       const names = [...pins].map(p => p.querySelector('.pin-name').textContent), total = {};
       names.forEach(t => total[t] = (total[t] || 0) + 1);
       pins.forEach((p, i) => { const t = names[i]; n[t] = (n[t] || 0) + 1;
@@ -398,7 +398,7 @@
         const risk = m.hours_to_zone_d != null ? `<div class="risk">Damage zone in ~${Math.round(m.hours_to_zone_d)} h</div>` : `<div class="mv">${esc(m.trend || '')}</div>`;
         return `<button class="mach ${lvl === 'r' ? 'crit' : ''}" data-m="${m.machine_id}" aria-label="${m.machine_id}, ${m.latest_vibration} millimetres per second, zone ${m.zone}">
           <div class="body"><span class="tower"><i class="lamp r ${lvl === 'r' ? 'on' : ''}"></i><i class="lamp a ${lvl === 'a' ? 'on' : ''}"></i><i class="lamp g ${lvl === 'g' ? 'on' : ''}"></i></span>
-            <div class="rd"><b>${Number(m.latest_vibration).toFixed(2)}</b><small>mm/s</small></div>
+            <div class="rd" data-noai><b>${Number(m.latest_vibration).toFixed(2)}</b><small>mm/s</small></div>
             <svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true"><line x1="0" x2="100" y1="${y(lim)}" y2="${y(lim)}"/><polyline points="${pts}"/></svg></div>
           <div class="mn">${m.machine_id}<span class="zc ${m.zone}">Zone ${m.zone}</span></div><div class="mv">${esc(m.name || '')}</div>${risk}</button>`;
       }).join('');
@@ -499,4 +499,84 @@
       fi.addEventListener('change', () => m.remove(), { once: true });
     }
   }, true);
+})();
+(function () {
+  const go = id => document.getElementById(id).click();
+  window.showWorker = function () {
+    window._rcReset && window._rcReset();
+    const f = document.getElementById('flow');
+    f.innerHTML = `<h1 class="wk-h">What do you want to do?</h1>
+      <button class="wk-btn primary" data-go="ownBtn"><i class="ti ti-camera" aria-hidden="true"></i>Check a part</button>
+      <button class="wk-btn b2" data-go="micBtn"><i class="ti ti-microphone" aria-hidden="true"></i>Speak a problem</button>
+      <button class="wk-btn" data-go="calBtn"><i class="ti ti-ruler-measure" aria-hidden="true"></i>Measure</button>
+      <div class="wk-links"><button id="wkWall">Golden sample wall</button><button id="wkFloor">Shop floor (supervisor)</button></div>`;
+    f.querySelectorAll('[data-go]').forEach(b => b.onclick = () => go(b.dataset.go));
+    f.querySelector('#wkWall').onclick = () => window.showWall(); f.querySelector('#wkFloor').onclick = () => window.showFloor();
+  };
+  window.showHome = () => (window.matchMedia('(min-width:761px)').matches ? window.showFloor() : window.showWorker());
+  document.getElementById('homeBtn').onclick = window.showHome; document.querySelector('.logo').onclick = window.showHome;
+  window.showHome();
+})();
+(function () {
+  const SAY = { ok: { en: 'Part is OK.', kn: 'ಭಾಗ ಸರಿ ಇದೆ.', hi: 'पार्ट ठीक है।', te: 'భాగం సరిగా ఉంది.' },
+    bad: { en: 'Defect found. Set the part aside.', kn: 'ದೋಷ ಕಂಡುಬಂದಿದೆ. ಭಾಗವನ್ನು ಪಕ್ಕಕ್ಕಿಡಿ.', hi: 'खराबी मिली। पार्ट को अलग रखें।', te: 'లోపం కనిపించింది. భాగాన్ని పక్కన పెట్టండి.' },
+    amber: { en: 'Not sure. Please check by eye.', kn: 'ಖಚಿತವಿಲ್ಲ. ದಯವಿಟ್ಟು ಕಣ್ಣಿನಿಂದ ಪರಿಶೀಲಿಸಿ.', hi: 'पक्का नहीं है। कृपया आँख से जाँचें।', te: 'ఖచ్చితంగా తెలియదు. దయచేసి కంటితో తనిఖీ చేయండి.' } };
+  const WORD = { ok: 'OK', bad: 'NOT OK', amber: 'CHECK BY EYE' }, ICON = { ok: '✓', bad: '', amber: '!' };
+  const unsure = () => /check by eye|retake photo/i.test(document.getElementById('flow').textContent);
+  function beep(kind) { try { const a = new (window.AudioContext || window.webkitAudioContext)(), n = { ok: 1, bad: 2, amber: 3 }[kind];
+      for (let i = 0; i < n; i++) { const o = a.createOscillator(), g = a.createGain(); o.frequency.value = kind === 'ok' ? 880 : kind === 'bad' ? 420 : 660;
+        o.connect(g); g.connect(a.destination); g.gain.value = .15; o.start(a.currentTime + i * .22); o.stop(a.currentTime + i * .22 + .15); } } catch (e) {} }
+  function verdict(kind) {
+    if (!window.matchMedia('(max-width:760px)').matches || document.querySelector('.verdict')) return;
+    const lang = (typeof LANG !== 'undefined' && SAY[kind][LANG]) ? LANG : 'en', say = SAY[kind][lang];
+    const v = document.createElement('div'); v.className = 'verdict ' + kind; v.setAttribute('role', 'alertdialog'); v.setAttribute('aria-label', WORD[kind]);
+    v.innerHTML = `<div class="v-ico">${ICON[kind]}</div><div class="v-word">${WORD[kind]}</div><div class="v-say">${say}</div>
+      <div><button class="primary" id="vNext">Next part</button> <button id="vMore">See details</button></div>`;
+    document.body.appendChild(v); beep(kind); if (navigator.vibrate) navigator.vibrate(kind === 'bad' ? [120, 60, 120] : [60]);
+    try { speak(say, typeof uiLangCode === 'function' ? uiLangCode() : 'en-IN'); } catch (e) {}
+    v.querySelector('#vNext').onclick = () => { v.remove(); document.getElementById('ownBtn').click(); };
+    v.querySelector('#vMore').onclick = () => v.remove();
+  }
+  const _log = window.log;
+  window.log = function (a, m) {
+    const r = _log.apply(this, arguments);
+    if (a === 'Inspector' && typeof m === 'string' && (/^Found \d+ defect/.test(m) || m === 'No defect found')) {
+      const def = /^Found/.test(m);
+      setTimeout(() => {
+        const kind = unsure() ? 'amber' : def ? 'bad' : 'ok'; verdict(kind);
+        const st = document.querySelector('#flow .stamp'); if (st && kind === 'amber') { st.className = 'stamp amber'; st.textContent = 'CHECK'; }
+      }, 1200);
+    }
+    return r;
+  };
+})();
+(function () {
+  const flow = document.getElementById('flow');
+  new MutationObserver(() => document.body.classList.toggle('worker', !!flow.querySelector('.wk-h'))).observe(flow, { childList: true });
+  document.body.classList.toggle('worker', !!flow.querySelector('.wk-h'));
+})();
+(function () {   // Kaarigar Teaches now lives inside Ask Kaarigar (Trainer agent)
+  document.addEventListener('click', e => {
+    if (!e.target.closest('#teachBtn')) return;
+    e.stopImmediatePropagation(); e.preventDefault();
+    document.getElementById('askBtn').click();
+    setTimeout(() => { const i = document.getElementById('askQ'); i.value = 'Make a new-operator guide for M1 (CNC Lathe 1).'; i.focus(); i.select(); }, 80);
+  }, true);
+})();
+
+(function () {   // mark the interface language on <html> so Indian scripts get their own heading sizes
+  const mark = () => { document.documentElement.dataset.ui = (typeof LANG !== 'undefined' ? LANG : 'en'); };
+  const _sl = window.setLang; window.setLang = function (l) { const r = _sl.apply(this, arguments); mark(); return r; }; mark();
+})();
+(function () {   // one assistant: "Ask Kaarigar" covers factory questions, how-tos and operator guides
+  const base = window.showFloor;
+  window.showFloor = function () {
+    base();
+    document.querySelectorAll('#flow [data-go="teachBtn"]').forEach(b => b.remove());
+    const a = document.querySelector('#flow [data-go="askBtn"]');
+    if (a && !a.querySelector('.sub')) a.innerHTML = '<i class="ti ti-message-chatbot" aria-hidden="true"></i><span>Ask Kaarigar<span class="sub">Your factory · how-to questions · new-operator guides</span></span>';
+  };
+  window.showHome = () => (window.matchMedia('(min-width:761px)').matches ? window.showFloor() : window.showWorker());
+  document.getElementById('homeBtn').onclick = window.showHome; document.querySelector('.logo').onclick = window.showHome;
+  window.showHome();
 })();
