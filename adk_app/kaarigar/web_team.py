@@ -19,7 +19,7 @@ from adk_app.kaarigar.agent import (_model, find_root_cause, get_eight_d_report,
 
 def factory_status() -> dict:
     """Health of every machine now (vibration change, trend, top hint) plus the BigQuery ML forecast:
-    hours until the ISO damage zone. Machine data is SIMULATED."""
+    hours until the ISO damage zone, and maintenance_plan: the best planned stop (a break or shift change) before the damage zone, computed in code. For 'when should I stop' questions, quote maintenance_plan. Machine data is SIMULATED."""
     from agents.tools.forecast import forecast_all
     from agents.tools.machine_data import factory_overview
     f = factory_overview()
@@ -30,6 +30,8 @@ def factory_status() -> dict:
     for m in f.get("machines", []):
         fc = fa.get(m["machine_id"], {})
         m["zone"] = fc.get("zone")
+        from agents.tools.planner import plan_stop
+        m["maintenance_plan"] = plan_stop((fc.get("hours_to_zone_d") or {}).get("expected"))["message"]
         m["hours_to_damage_zone"] = (fc.get("hours_to_zone_d") or {}).get("expected")
     return f
 

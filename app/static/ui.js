@@ -395,7 +395,7 @@
         const h = (m.history || []).slice(-24).map(x => x.v), lim = 4.5, lo = Math.min(...h, 0.5), hi = Math.max(...h, lim);
         const y = v => (30 - (v - lo) / (hi - lo) * 30).toFixed(1);
         const pts = h.map((v, i) => `${(i / Math.max(h.length - 1, 1) * 100).toFixed(1)},${y(v)}`).join(' ');
-        const risk = m.hours_to_zone_d != null ? `<div class="risk">Damage zone in ~${Math.round(m.hours_to_zone_d)} h</div>` : `<div class="mv">${esc(m.trend || '')}</div>`;
+        const risk = m.hours_to_zone_d != null ? `<div class="risk">Damage zone in ~${Math.round(m.hours_to_zone_d)} h</div>${m.plan_short ? `<div class="plan" title="${esc(m.plan || '')}">🛠 ${esc(m.plan_short)}</div>` : ''}` : `<div class="mv">${esc(m.trend || '')}</div>`;
         return `<button class="mach ${lvl === 'r' ? 'crit' : ''}" data-m="${m.machine_id}" aria-label="${m.machine_id}, ${m.latest_vibration} millimetres per second, zone ${m.zone}">
           <div class="body"><span class="tower"><i class="lamp r ${lvl === 'r' ? 'on' : ''}"></i><i class="lamp a ${lvl === 'a' ? 'on' : ''}"></i><i class="lamp g ${lvl === 'g' ? 'on' : ''}"></i></span>
             <div class="rd" data-noai><b>${Number(m.latest_vibration).toFixed(2)}</b><small>mm/s</small></div>

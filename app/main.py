@@ -151,6 +151,8 @@ def factory():
             if fc and fc.get("status") == "success":
                 m["zone"] = fc["zone"]
                 m["hours_to_zone_d"] = fc["hours_to_zone_d"]["expected"]
+                from agents.tools.planner import plan_stop
+                _pl = plan_stop(m["hours_to_zone_d"]); m["plan"], m["plan_short"] = _pl["message"], _pl["short"]
     except Exception:
         pass
     return f
@@ -161,6 +163,7 @@ def factory():
 def factory_map():
     from agents.diagnosis import MACHINES as MCH
     from agents.tools.forecast import forecast_all, history_all
+    from agents.tools.planner import plan_stop
     f = factory_overview()
     try:
         fa, hist = forecast_all(), history_all(24)
@@ -169,7 +172,8 @@ def factory_map():
     out = []
     for m in f.get("machines", []):
         mid = m["machine_id"]; fc = fa.get(mid, {})
-        out.append({**m, "name": MCH.get(mid, ("", ""))[0],
+        _pl = plan_stop((fc.get("hours_to_zone_d") or {}).get("expected"))
+        out.append({**m, "plan": _pl["message"], "plan_short": _pl["short"], "name": MCH.get(mid, ("", ""))[0],
                     "zone": fc.get("zone"), "zone_meaning": fc.get("zone_meaning"),
                     "latest_vibration": fc.get("latest_vibration"),
                     "hours_to_zone_d": (fc.get("hours_to_zone_d") or {}).get("expected"),
