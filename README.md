@@ -45,9 +45,9 @@ Press **▶ Try the demo** (machine story) or **▶ Real factory part (Peenya)**
 ## Judge guide: test Kaarigar in 3 minutes
 **Live app:** https://kaarigar-510716.web.app (no login needed; works on a phone).
 
-1. **Golden sample wall (home screen).** Tap any pinned part. Kaarigar compares it with its golden sample, locates the defect, and diagnoses the root cause. Watch the **route card** at the top get stamped (Detect, Diagnose, Act…) and the **agent reasoning** panel on the right. Drag the **spot-the-difference slider** under the result.
+1. **Shop floor (home screen on a laptop).** Every feature is a station on a 5S-coloured floor plan. Tap **Check a part**, or a print on the **Quality board**: Kaarigar scans it, stamps **NOT OK / OK**, and shows a one-line cause card. Watch the **route card** get stamped and the **agent reasoning** panel. On a **phone**, the home is **worker mode**: three big buttons and a full-screen spoken verdict.
 2. **▶ Watch the full loop.** The complete Detect → Diagnose → Act → Verify → Predict → Prevent → Learn flow. To approve the work order, click **Sign in as demo supervisor** (one click, Firebase Authentication).
-3. **💬 Ask Kaarigar** (ADK agent team). Try: *"Which machine worries you most, and why?"* · *"Which supplier causes most of our problems?"* · *"What is waiting for my approval?"* · *"Have we seen scratches on flange nuts before?"* Switch the header to **ಕನ್ನಡ / हिन्दी / తెలుగు** and ask again.
+3. **💬 Ask Kaarigar** (ADK agent team). Try: *"Which machine worries you most, and why?"* · *"Which supplier causes most of our problems?"* · *"What is waiting for my approval?"* · *"Have we seen scratches on flange nuts before?"* Also try *"How do I check runout with a dial indicator?"* (Trainer agent, Google Search) and *"Make a new-operator guide for M1."* Switch the header to **ಕನ್ನಡ / हिन्दी / తెలుగు** (instant, Cloud Translation) and ask again.
 4. **📷 Inspect your own part.** Two photos of any small object (one good, one scratched or different), with the live camera's guided capture.
 5. Also try **🏷️ Quality Passport** (QR code), **📒 Import paper register** (sample page: `docs/sample_register.png`), **📏 Check a measurement**, **🎙 Report a problem by voice**.
 
