@@ -265,3 +265,22 @@ html:not([data-ui="en"]) .lvl-tag,html:not([data-ui="en"]) .navgrp h3{line-heigh
 .tool .sub{display:block;font-size:12px;color:var(--muted);line-height:1.3;margin-top:1px}
 #teachBtn{display:none!important}
 .plan{font-size:12px;font-weight:700;color:var(--green);margin-top:2px;line-height:1.3}
+/* Polish: icons instead of emojis */
+.emo-i{margin-right:6px;font-size:1.05em;vertical-align:-2px}
+/* Polish: no horizontal scroll from long strings (fingerprints, links) */
+#flow{overflow-wrap:anywhere}
+#flow img,#flow canvas,#flow svg{max-width:100%;height:auto}
+#flow table{display:block;max-width:100%;overflow-x:auto}
+#flow code,#flow pre{white-space:pre-wrap;word-break:break-all}
+/* Polish: 44 px tap targets on phones */
+@media (max-width:760px){
+  button,select,input:not([type=checkbox]):not([type=radio]),.tap44{min-height:44px}
+  .tap44{display:inline-flex;align-items:center;padding:0 6px}
+}
+/* Polish: never scroll sideways on phones; lists stay inside the screen */
+@media (max-width:760px){
+  html,body{overflow-x:hidden}
+  #flow ol,#flow ul{max-width:100%;padding-left:1.3em;box-sizing:border-box}
+  #siBtn{min-height:44px!important;display:inline-flex!important;align-items:center;padding:0 8px}
+  #lang{min-height:44px!important}
+}

@@ -580,3 +580,21 @@
   document.getElementById('homeBtn').onclick = window.showHome; document.querySelector('.logo').onclick = window.showHome;
   window.showHome();
 })();
+(function () {   // Polish: interface emojis -> Tabler line icons (also for content rendered later); alt text on images
+  const MAP = { '🏠': 'home', '▶': 'player-play', '📷': 'camera', '📏': 'ruler-measure', '🎙': 'microphone', '🏭': 'building-factory-2',
+    '💬': 'message-chatbot', '🌅': 'sun-high', '📳': 'device-mobile-vibration', '📊': 'chart-bar', '🏷': 'tag', '📒': 'notebook',
+    '🎓': 'school', '🙋': 'user-question', '🔊': 'volume', '🛠': 'tool', '👷': 'user-shield', '⏱': 'clock-hour-4', '📄': 'file-text', '⚠': 'alert-triangle', '📸': 'camera', '🔍': 'search', '🔁': 'repeat', '✅': 'circle-check', '🧠': 'brain', '🛡': 'shield-check' };
+  const RX = new RegExp('^(\\s*)(' + Object.keys(MAP).join('|') + ')\\uFE0F?\\s*');
+  function fix() {
+    const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT), hits = [];
+    while (w.nextNode()) { const n = w.currentNode; if (RX.test(n.textContent) && n.parentElement && !n.parentElement.closest('.verdict,.stamp,script,style,textarea,option')) hits.push(n); }
+    hits.forEach(n => { const m = n.textContent.match(RX), i = document.createElement('i');
+      i.className = 'ti ti-' + MAP[m[2]] + ' emo-i'; i.setAttribute('aria-hidden', 'true');
+      n.textContent = n.textContent.slice(m[0].length); n.parentElement.insertBefore(i, n); });
+    document.querySelectorAll('img:not([alt]),img[alt=""]').forEach(im => im.alt = im.title || 'Part photo');
+  }
+  let busy = false;
+  new MutationObserver(() => { if (busy) return; busy = true; requestAnimationFrame(() => { fix(); busy = false; }); })
+    .observe(document.body, { childList: true, subtree: true });
+  fix();
+})();
