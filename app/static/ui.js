@@ -239,7 +239,7 @@
     document.getElementById('log').innerHTML = '<div class="small">Each step the agents take appears here.</div>';
     const f = document.getElementById('flow');
     f.innerHTML = `<div id="homeAlert" class="home-alert" hidden></div>
-    <h1 class="floor-h">Your shop floor, live</h1><p class="floor-sub">Every station is a Kaarigar tool. Tap a machine, a bench or a board.</p>
+    <h1 class="floor-h">Your shop floor, live</h1><p class="floor-sub">Every station is a Kaarigar tool. Tap a machine, a bench or a board. AI informs; humans decide.</p>
     <div class="floor"><div class="fcol">
       <section class="zone" style="--z:#F28C00"><span class="zone-l">Inspection bench</span>
         <button class="primary cta-big" data-go="ownBtn">📷 Check a part</button>
@@ -252,7 +252,7 @@
       <section class="zone" style="--z:#D7261E"><span class="zone-l">Red tag area</span>
         <div class="bin"><b id="rtCount">–</b><span class="small">defects caught and held back from customers</span></div></section>
     </div><div class="aisle" aria-hidden="true"><span></span><span></span><span></span></div><div class="fcol">
-      <section class="zone" style="--z:#FFFFFF;--zt:#1B2420"><span class="zone-l">Machine bay</span><div class="bay" id="bay"></div></section>
+      <section class="zone" style="--z:#FFFFFF;--zt:#1B2420"><span class="zone-l">Machine bay · simulated sensors</span><div class="bay" id="bay"></div></section>
       <div class="fpair">
         <section class="zone" style="--z:#2E5E4E"><span class="zone-l">Supervisor cabin</span>
           <button class="tool" data-go="askBtn"><i>💬</i>Ask Kaarigar</button>
