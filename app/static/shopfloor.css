@@ -284,3 +284,8 @@ html:not([data-ui="en"]) .lvl-tag,html:not([data-ui="en"]) .navgrp h3{line-heigh
   #siBtn{min-height:44px!important;display:inline-flex!important;align-items:center;padding:0 8px}
   #lang{min-height:44px!important}
 }
+[hidden]{display:none!important}
+/* Header: never push buttons off-screen on medium laptop widths */
+@media (max-width:1500px){header .tag{display:none!important}}
+@media (min-width:761px){header{flex-wrap:wrap!important;row-gap:8px}}
+@media (min-width:761px){body.home header #drawerBtn{display:inline-flex!important}}
